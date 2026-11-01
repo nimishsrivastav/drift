@@ -61,7 +61,11 @@ lint-rust:
 lint-python:
     uv run --all-packages --locked ruff check .
     uv run --all-packages --locked ruff format --check .
-    uv run --all-packages --locked mypy scorer/src
+    uv run --all-packages --locked mypy scorer/src eval/src
+
+# Check every evaluation manifest. `just test` does this too, through pytest.
+validate-manifests:
+    uv run --all-packages --locked python -m drift_eval.manifest eval/manifests
 
 lint-workflows:
     actionlint

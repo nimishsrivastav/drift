@@ -1,0 +1,4 @@
+# Real malicious updates of legitimate packages, each paired with its last benign version.
+# Metadata and hashes only. See README.md and .claude/rules/samples.md.
+schema_version: 1
+pairs: []

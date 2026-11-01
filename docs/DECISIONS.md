@@ -130,3 +130,16 @@ runs package code. The parsers are the likelier thing to be compromised, so they
 which distroless can't provide, so this image has a shell and a larger attack surface than the others. `drift-egress`
 itself is unrestricted, not limited to the registry and the three forges: the URL checks are in the application, and M5's
 sinkhole work covers sandbox egress, not this.
+
+## 2026-11-01: Manifest schema additions beyond PLAN.md
+
+`case_type` also has `hard_negative` and `routine`, and hard negatives add `traits` and `rationale`. Hashes are per tarball,
+for the benign version too, and include `sha1`, a `source` and a `note`. `provenance_present` and `sample_available` stay
+the `y`/`n` strings that the plan and handling rules use, and `true`/`false` are rejected.
+
+Why: the plan's `case_type` values only describe positives, and metrics are reported per `case_type`, so negatives need
+values too. Many advisories only state npm's SHA-1 `shasum`. The `source` makes every hash traceable to a citation, and the
+`note` makes a missing hash an explicit statement rather than an oversight. `sample_available: y` requires a hash, because a
+recovered file must be verified against one before use. The validator rejects duplicate keys and non-string versions,
+because PyYAML otherwise keeps the last duplicate and reads `1.10` as the number 1.1, either of which silently corrupts the
+dataset.
