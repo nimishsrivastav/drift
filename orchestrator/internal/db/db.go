@@ -14,7 +14,14 @@ import (
 	"slices"
 	"time"
 
-	_ "modernc.org/sqlite" // pure Go, because the images build with CGO_ENABLED=0
+	"modernc.org/sqlite" // pure Go, because the images build with CGO_ENABLED=0
+	sqlite3 "modernc.org/sqlite/lib"
+)
+
+const (
+	setupTimeout    = 30 * time.Second
+	setupFirstRetry = 5 * time.Millisecond
+	setupMaxRetry   = 250 * time.Millisecond
 )
 
 //go:embed migrations/*.sql
@@ -46,7 +53,6 @@ func Open(ctx context.Context, path string) (*DB, error) {
 	query := url.Values{}
 	query.Add("_pragma", "foreign_keys(1)")
 	query.Add("_pragma", "busy_timeout(10000)")
-	query.Add("_pragma", "journal_mode(WAL)")
 	query.Set("_txlock", "immediate")
 	dsn := url.URL{Scheme: "file", Path: abs, RawQuery: query.Encode()}
 
@@ -54,7 +60,7 @@ func Open(ctx context.Context, path string) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
-	if err := migrate(ctx, conn); err != nil {
+	if err := retryWhileBusy(ctx, func() error { return setup(ctx, conn) }); err != nil {
 		_ = conn.Close()
 		return nil, err
 	}
@@ -63,6 +69,50 @@ func Open(ctx context.Context, path string) (*DB, error) {
 
 // Close closes the database.
 func (d *DB) Close() error { return d.sql.Close() }
+
+// setup enables WAL and applies migrations. WAL is stored in the database file, so unlike the
+// DSN pragmas it needs setting only once.
+func setup(ctx context.Context, conn *sql.DB) error {
+	var mode string
+	if err := conn.QueryRowContext(ctx, "PRAGMA journal_mode = WAL").Scan(&mode); err != nil {
+		return fmt.Errorf("enable WAL: %w", err)
+	}
+	return migrate(ctx, conn)
+}
+
+// retryWhileBusy retries fn while another process holds the database. Switching to WAL needs an
+// exclusive lock, and SQLite can report busy for it at once instead of using busy_timeout.
+func retryWhileBusy(ctx context.Context, fn func() error) error {
+	ctx, cancel := context.WithTimeout(ctx, setupTimeout)
+	defer cancel()
+
+	delay := setupFirstRetry
+	for {
+		err := fn()
+		if err == nil || !isBusy(err) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(delay):
+		}
+		delay = min(delay*2, setupMaxRetry)
+	}
+}
+
+func isBusy(err error) bool {
+	var sqliteErr *sqlite.Error
+	if !errors.As(err, &sqliteErr) {
+		return false
+	}
+	// The low byte of an extended result code is its primary code.
+	switch sqliteErr.Code() & 0xff {
+	case sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED:
+		return true
+	}
+	return false
+}
 
 // migrate applies embedded migrations in name order, tracking progress in user_version. Each
 // one is atomic, and the version is read inside the transaction so that two processes

@@ -2,7 +2,9 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -55,17 +57,22 @@ func TestOpenIsIdempotentAndKeepsData(t *testing.T) {
 	}
 }
 
-func TestOpenConcurrently(t *testing.T) {
+// Several CLI runs can start at once on a new database. Each write is followed by a close, since
+// closing the last connection is another point where SQLite takes strong locks.
+func TestOpenWriteCloseConcurrently(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "drift.db")
 	var wg sync.WaitGroup
 	errs := make(chan error, 8)
 	for range cap(errs) {
 		wg.Go(func() {
-			d, err := Open(context.Background(), path)
-			if err == nil {
-				_ = d.Close()
-			}
-			errs <- err
+			errs <- func() error {
+				d, err := Open(context.Background(), path)
+				if err != nil {
+					return err
+				}
+				_, err = d.CreateJob(context.Background(), NewJob{Ecosystem: npm, Package: "demo"})
+				return errors.Join(err, d.Close())
+			}()
 		})
 	}
 	wg.Wait()
@@ -75,6 +82,82 @@ func TestOpenConcurrently(t *testing.T) {
 			t.Error(err)
 		}
 	}
+}
+
+// realBusyError gets a genuine SQLITE_BUSY: one connection holds the write lock while another,
+// with no busy timeout, tries to take it.
+func realBusyError(t *testing.T) error {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "drift.db")
+	holder, err := Open(t.Context(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = holder.Close() })
+	tx, err := holder.sql.BeginTx(t.Context(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	waiter, err := sql.Open("sqlite", "file:"+path+"?_pragma=busy_timeout(0)&_txlock=immediate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = waiter.Close() }()
+	waiterTx, err := waiter.BeginTx(t.Context(), nil)
+	if err == nil {
+		_ = waiterTx.Rollback()
+		t.Fatal("the lock was not contended")
+	}
+	return err
+}
+
+func TestRetryWhileBusy(t *testing.T) {
+	errBusy := fmt.Errorf("wrapped: %w", realBusyError(t))
+	if !isBusy(errBusy) {
+		t.Fatalf("a real busy error was not recognized: %v", errBusy)
+	}
+	errOther := errors.New("not busy")
+	if isBusy(errOther) {
+		t.Fatal("another error counted as busy")
+	}
+
+	tests := []struct {
+		name      string
+		results   []error
+		wantErr   error
+		wantCalls int
+	}{
+		{name: "succeeds at once", results: []error{nil}, wantCalls: 1},
+		{name: "retries until free", results: []error{errBusy, errBusy, nil}, wantCalls: 3},
+		{name: "other errors are not retried", results: []error{errOther, nil}, wantErr: errOther, wantCalls: 1},
+		{name: "another error after busy stops it", results: []error{errBusy, errOther, nil}, wantErr: errOther, wantCalls: 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			calls := 0
+			err := retryWhileBusy(t.Context(), func() error {
+				calls++
+				return tt.results[calls-1]
+			})
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("err = %v, want %v", err, tt.wantErr)
+			}
+			if calls != tt.wantCalls {
+				t.Errorf("calls = %d, want %d", calls, tt.wantCalls)
+			}
+		})
+	}
+
+	t.Run("gives up when the context ends", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Millisecond)
+		defer cancel()
+		err := retryWhileBusy(ctx, func() error { return errBusy })
+		if !isBusy(err) {
+			t.Errorf("err = %v, want the busy error", err)
+		}
+	})
 }
 
 func TestOpenRefusesNewerSchema(t *testing.T) {
