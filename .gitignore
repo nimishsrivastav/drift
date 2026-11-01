@@ -1,0 +1,43 @@
+# Malware samples and datasets: NEVER commit (CLAUDE.md safety rule 3)
+eval/data/
+
+# Claude Code local-only config
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Windows download metadata
+*:Zone.Identifier
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Rust
+/target/
+crates/*/fuzz/target/
+crates/*/fuzz/corpus/
+crates/*/fuzz/artifacts/
+
+# Go
+/bin/
+*.test
+*.out
+coverage.txt
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
