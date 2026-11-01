@@ -1,0 +1,18 @@
+[package]
+name = "trace-rs"
+description = "Dynamic trace normalization and drift analyzer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+drift-proto.workspace = true
+tokio.workspace = true
+tonic.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true
