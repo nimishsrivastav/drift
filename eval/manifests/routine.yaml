@@ -1,3 +1,756 @@
 # Ordinary consecutive-version updates of popular packages. See README.md.
+# Selected on 2026-11-01: the newest stable release at least 60 days old and its predecessor,
+# neither deprecated nor in an OSV malware record. Hashes are from the registry, and no tarballs
+# were downloaded. M8 expands this to the top ~1,000 packages, stratified by size and frequency.
 schema_version: 1
-pairs: []
+pairs:
+  - ecosystem: npm
+    package: "react"
+    benign_version: "19.2.7"
+    target_version: "19.2.8"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 1f47a1bfc06f8ec885752c6f4af14369a9f8260b
+      sha512: 1cd7bd5ac9536d79852bca3c726c2001e245481bedd5b3dd1c254ab5a695f96940377ea6a53e21711a706dfddf639e9aaf6a085f3b01a4e0222111c0758d0e95
+      source: https://registry.npmjs.org/react/19.2.7
+    target_tarball:
+      sha1: a80663dbb58d69c6fe3fd291d3cb324e8a7dff2d
+      sha512: 3d66980352ffabdbb6bbbc58422f98dcbdd87e789eed7c8b79a248095d4c183e8ba6bb01c5c02a1a3632af4798de9f9076c03ec7f22b92de1089ff03eb7f926f
+      source: https://registry.npmjs.org/react/19.2.8
+    sample_available: y
+  - ecosystem: npm
+    package: "react-dom"
+    benign_version: "19.2.7"
+    target_version: "19.2.8"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 0450dc9ae9ddbff76ef196401cd8b8c7fb466ccc
+      sha512: b74051557bdb884fe8db41dfc3aebdacb6cc0835ad6192ef9898a0cb67f4331b1717eef5a71851df13a4b299ac3bc877665373ca26c09ad09ade5e2560a93a81
+      source: https://registry.npmjs.org/react-dom/19.2.7
+    target_tarball:
+      sha1: 3b46b9eeda877cdff2cf13d2770fff4ae36c2ec2
+      sha512: ad5a6b8a67c6046dc347e4ead08406d834f93f12ad8755881839a3e723e6973af86017bbbb213e0eee2856a4c35d948718619746d4c910649278fc9008c06095
+      source: https://registry.npmjs.org/react-dom/19.2.8
+    sample_available: y
+  - ecosystem: npm
+    package: "express"
+    benign_version: "5.2.0"
+    target_version: "5.2.1"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: d4101c16807a1a061c6e9adc7ce617473b4afeb9
+      sha512: 5dda490cbc5fced558e7d5f4ccf23ab226d18867318533d7443dc88499a329fda3c0cbe44465758fb96807c53e85e79a9a85375ef8a101a1914d1e1a5d750ddc
+      source: https://registry.npmjs.org/express/5.2.0
+    target_tarball:
+      sha1: 8f21d15b6d327f92b4794ecf8cb08a72f956ac04
+      sha512: 8484b889d5966a2ebd35ecc8751b76c455687da1788fee8834ea4995538b0cef335c6a54544573218935d94522d89ce313358bdc8380c5c4ee6e0cfd3e8d325f
+      source: https://registry.npmjs.org/express/5.2.1
+    sample_available: y
+  - ecosystem: npm
+    package: "commander"
+    benign_version: "14.0.3"
+    target_version: "15.0.0"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 425d79b48f9af82fcd9e4fc1ea8af6c5ec07bbc2
+      sha512: 1fecb4268fd3d5167da8f3f8121d6991c41c2d1825ada25a48ba323ad1f1bba01aa648d6542cb64a2b75410e31dc39e0f2a0e54ac6447adee0e4fab4e8cbd383
+      source: https://registry.npmjs.org/commander/14.0.3
+    target_tarball:
+      sha1: 96f3961f12adac1799ef3fbd8bc61d40572d1b11
+      sha512: cfaeeee1987308bfd3c9dbb5949011b4465859b59a37ba182c76ecbb3a1cafacb837a59901a806dd1438156eb5575ff4fa3226a63dbddd77eb7189ddd6ac6d3e
+      source: https://registry.npmjs.org/commander/15.0.0
+    sample_available: y
+  - ecosystem: npm
+    package: "tslib"
+    benign_version: "2.8.0"
+    target_version: "2.8.1"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: d124c86c3c05a40a91e6fdea4021bd31d377971b
+      sha512: 8d657304ba659c29a8693af5dd5f5d61b890f7dc2f651774bcd59a0d183e6956117230c5de70e4b3114313ff9f9179ca8699d45249b1e692bfbfc982b4b56a64
+      source: https://registry.npmjs.org/tslib/2.8.0
+    target_tarball:
+      sha1: 612efe4ed235d567e8aba5f2a5fab70280ade83f
+      sha512: a0916ef781d06fe29576e49440bef09e99aa9df98bb0e03f9c087a6fa107d30084a0ad3f98f79753a737c0a0d5f373243ae1cf447b525ca294f7d2016b34bfdb
+      source: https://registry.npmjs.org/tslib/2.8.1
+    sample_available: y
+  - ecosystem: npm
+    package: "glob"
+    benign_version: "13.0.5"
+    target_version: "13.0.6"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: a48f760c6312b1a19d2950fcb577384221c4ec00
+      sha512: 0735f1660db821badad696d0ff313b2b2b3851ad64b3b067ea928b9153d9f4565ee09412ebf43b79fdcb1b51fe93b9547f99784f73cb4b263260955852f7e04f
+      source: https://registry.npmjs.org/glob/13.0.5
+    target_tarball:
+      sha1: 078666566a425147ccacfbd2e332deb66a2be71d
+      sha512: 5a3972ae89669bcb83a66fe8806c976576f567e09ad81f0d6c9c2a0558346b12bd19b05ea12ef2195eaf8d79d87469ba5f9de27a112ec716f288aa7c42637857
+      source: https://registry.npmjs.org/glob/13.0.6
+    sample_available: y
+  - ecosystem: npm
+    package: "minimatch"
+    benign_version: "10.2.5"
+    target_version: "10.2.6"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: bd48687a0be38ed2961399105600f832095861d1
+      sha512: 3142e454b7ca1980c561e8cfd3b40ebab0cb2d0a5c8e4ec5c3eee35d2d91d9ccd1433479eb21d1bde5393432443af887fa111364a4a4224e5cf93db71a315432
+      source: https://registry.npmjs.org/minimatch/10.2.5
+    target_tarball:
+      sha1: fd956bbe0b77241e9f15ac5dccb1c638060968ef
+      sha512: be92d012cf952c2af59d4d015d2d3b99a628170943007d209e042ebadb71230bad0c510c1ead9b957fbcbe98310dd2b72753f08c22627a9efb3a2b536782e5d4
+      source: https://registry.npmjs.org/minimatch/10.2.6
+    sample_available: y
+  - ecosystem: npm
+    package: "semver"
+    benign_version: "7.8.4"
+    target_version: "7.8.5"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: c73eceebae0616934be8dff28a7fd70757c8e696
+      sha512: ad408e6d39cfdf6434f11daeb88aedeebf4f944a27b939adb9761c5bab399237658f7c5b9f07bedb5c97a6d01461c3000012e46184ed9e6cdbdf0dc40d97ee78
+      source: https://registry.npmjs.org/semver/7.8.4
+    target_tarball:
+      sha1: 39b646037dd50c14fb451e7e4cac58ed8b863f69
+      sha512: 63bfca0ec6fc2e3a28669c1aa86cae94ee8342592c8029dc7211c693eb19218e1206f52870c044147e54af57c8e1d57e26f974c3a723bee71a222e34a6e462a0
+      source: https://registry.npmjs.org/semver/7.8.5
+    sample_available: y
+  - ecosystem: npm
+    package: "uuid"
+    benign_version: "14.0.1"
+    target_version: "14.0.2"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 8a5975b3e038902bfd169a10b5202f5ec0cf3faf
+      sha512: e99c73569cc35c36b76c959a1e29556b203e047ff5ce6c42268560be6a899e277f80fa0a1f152b4bf682fd3e8b190b4d1d3f971c6f5f5cf241e1df88ad4df413
+      source: https://registry.npmjs.org/uuid/14.0.1
+    target_tarball:
+      sha1: d5ae03e4db0881c87271f8b0b9bd7312d02c799a
+      sha512: c597bfd7aad5e1a6be1c648e0a263661e2d3d4ec9b44baeb90bfd1a9aabba7b18c5578c587eeb0378a0c6208c59a74a7858f2de97a5d97697daa69c762e307c1
+      source: https://registry.npmjs.org/uuid/14.0.2
+    sample_available: y
+  - ecosystem: npm
+    package: "yargs"
+    benign_version: "18.0.0"
+    target_version: "18.1.0"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 6c84259806273a746b09f579087b68a3c2d25bd1
+      sha512: e1412a75cd916061d973b0e8caa92baa2967de9f57d83655c5a19bc219f6a62eccad16a029a39c20a7bc2f73b161c6e15cb80b1544b7cc062e4232814209ae36
+      source: https://registry.npmjs.org/yargs/18.0.0
+    target_tarball:
+      sha1: cd7e98c703ef51695bbbf062ed58f28e94291b56
+      sha512: dab02044abb9e15b0792a234fed6249a5b865c70f8296ef2668c9cbaa0d0d7940e4e77365557f2d2737fd5e3219d02ced3403e770b4adb4c6e0a7735606794ca
+      source: https://registry.npmjs.org/yargs/18.1.0
+    sample_available: y
+  - ecosystem: npm
+    package: "typescript"
+    benign_version: "6.0.3"
+    target_version: "7.0.2"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 90251dc007916e972786cb94d74d15b185577d21
+      sha512: cb64efbb14993c3c906a490544f6472859be28a56a222b1d83dfc26709bd7edbca5cb3fc3515a3dfcfce0e335baf8dd2b285ea36e022b047f519d0b1a9671d07
+      source: https://registry.npmjs.org/typescript/6.0.3
+    target_tarball:
+      sha1: 9ec773d7954a8c182c17cc5bbd575aa28bc51582
+      sha512: f0561abbdea8dcd28e85b8ca8bfa8dbc6fd6e63873c646dd9b9b23f406d9ff94f9b16aa7de12602df1b1dbbb11299593bf2cc23fc74b4414dfe6d05349155434
+      source: https://registry.npmjs.org/typescript/7.0.2
+    sample_available: y
+  - ecosystem: npm
+    package: "webpack"
+    benign_version: "5.110.2"
+    target_version: "5.110.3"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: ef23a0e62fe5e1ba71b033e3505b7f005d8d5c6e
+      sha512: 4dc88badf33bce0123a86758f39d47922ac3b123d081316c590a65f681ea300318b078440b46ca8ec72f8e99f3fa9cf1d7484b0bca88480a46aec9eb08fe14b5
+      source: https://registry.npmjs.org/webpack/5.110.2
+    target_tarball:
+      sha1: e122b66f6226b7af8f209b6102cd13238c4813a8
+      sha512: 1ae8b307346fa3d60fa72a0d31fdda83b033c5b696f39aab452a9385adf8e4ac896c014fb77fdc33304cd21f915a0ed22bfec377344b20d3f72ef43486faf886
+      source: https://registry.npmjs.org/webpack/5.110.3
+    sample_available: y
+  - ecosystem: npm
+    package: "eslint"
+    benign_version: "10.9.0"
+    target_version: "10.9.1"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 3d86068a06c6c78161a4062e69874d38f59d498b
+      sha512: e4a7843896417c4540e3b6e816206c7fee8c9a62697df33ba84060e292e56b67b89e52a074a96a096d2848b386b13f16979b82189a6d2d5d5b91a892863f741b
+      source: https://registry.npmjs.org/eslint/10.9.0
+    target_tarball:
+      sha1: 409da5c41a5536d5a849f8555a18ca7ef1eb963b
+      sha512: f556809035117a48b1510272d282589760dc37aa0a31fc5acbb5f3686600590c2c6faa9f29ffb1efa4769352fc91bd5ba1cf85c8201a4c0f469a229a6a2685f8
+      source: https://registry.npmjs.org/eslint/10.9.1
+    sample_available: y
+  - ecosystem: npm
+    package: "prettier"
+    benign_version: "3.9.5"
+    target_version: "3.9.6"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 4fec97736e33b9d0b620b48914fe93b530e835ad
+      sha512: fc5565efae8ba547c1e6f5e00983986b431e57fe38d486bdf4078809021015363f370d2ba19c142dc5e992ee62d7f9b992dfdb6b3face19a20b2977cdfd1d232
+      source: https://registry.npmjs.org/prettier/3.9.5
+    target_tarball:
+      sha1: b3ea5146515d40fc53f18aa63f74dfab1e10dbf6
+      sha512: 3a9374cf355d89a880871a6eba3e5e7e9212e2c63d8fb6d8eae4799a78f9c8fcc691d92334a4897944e13dbeb4270dbd42e019800e28fbf881e3d90589a057ea
+      source: https://registry.npmjs.org/prettier/3.9.6
+    sample_available: y
+  - ecosystem: npm
+    package: "jest"
+    benign_version: "30.5.0"
+    target_version: "30.5.1"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 6a148540a092a1cb8bd19e1ed5a7227cc4f67ddc
+      sha512: 1de15e39410a8798239e9d6b8ee482b1ef03863d18dca03c96c6776b3af85a7ab59c2c70301bb7e4c0dcf66a7c89b959c66780cfac15e0fdb8d6dc9407b27613
+      source: https://registry.npmjs.org/jest/30.5.0
+    target_tarball:
+      sha1: db781144fcff8b4859d8dd5a0108d4c3b2173cfd
+      sha512: deaad1f3e6571679fbcb41f6ca359036418604b058e334d1a13300abdcc9720c0b2ed972a277ec08bbe22172bdc6e1362a023233e337e8015ca0ad83805477eb
+      source: https://registry.npmjs.org/jest/30.5.1
+    sample_available: y
+  - ecosystem: npm
+    package: "mocha"
+    benign_version: "11.8.0"
+    target_version: "12.0.0"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 9163cc59600ec26470f6b040e30aa51acc973ed2
+      sha512: 57209e51d18ddc0f659824d3806e32baf63d8b1c5a0e4fb1b7647fefffb500fe84a8d1be1bd38a933070855b55628357f18b3135280097c98ebf720078ea456f
+      source: https://registry.npmjs.org/mocha/11.8.0
+    target_tarball:
+      sha1: 6284d68e66fac4597e8411b0fd62ab4c6717023c
+      sha512: 358361e4816de9662a9bd6e2e3ad359bbbe2c7c3197570b40f04b8818e968573b6460256862be1212566ab5a2494289fd7c39223d97ebf1e4c766e688755c689
+      source: https://registry.npmjs.org/mocha/12.0.0
+    sample_available: y
+  - ecosystem: npm
+    package: "ws"
+    benign_version: "8.21.2"
+    target_version: "8.21.3"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: e6976cfe96161d40420689a5f051378d11b0f0ce
+      sha512: e7874c540a385887ba48acb7bc180dfbd6c966aa90f083117af02438b4002e18b8f6a92440341f59d019f0a4255e211a6f0f3c0115d7754ae5bed6ca417f9a2b
+      source: https://registry.npmjs.org/ws/8.21.2
+    target_tarball:
+      sha1: 660b4faddb6a3e575c86e078126919961f4de4fc
+      sha512: db4d5367f90f5b1a0faff38a5a3aae651d5258a5dcbf1747f9ed71af1f3d6f761b9b32cc1422df9da1b51c52205b324e11667b32fa4afbea1d66e7e0611e7447
+      source: https://registry.npmjs.org/ws/8.21.3
+    sample_available: y
+  - ecosystem: npm
+    package: "dotenv"
+    benign_version: "17.4.1"
+    target_version: "17.4.2"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: d8e2179fe287365ef3aecb9459668454168eda88
+      sha512: 93c0da2863faaf51b7d0bc7c578fa90ac2f32abf2f2e6576a5aa848f5639e46740809b88aa9469e457da8c617c2adc0cc42cfda8973ac142099e6d39dddfd60b
+      source: https://registry.npmjs.org/dotenv/17.4.1
+    target_tarball:
+      sha1: c07e54a746e11eba021dd9e1047ced5afdc1c034
+      sha512: 9c8e14dd3a2db4a01c003f4b2ee77809bedbd90ced40c5047c76ef8531f4f5ba974f19d289ef169e33c02d5fd6302ac967a515fea1c9e8bd373aa3b72dc75867
+      source: https://registry.npmjs.org/dotenv/17.4.2
+    sample_available: y
+  - ecosystem: npm
+    package: "moment"
+    benign_version: "2.30.0"
+    target_version: "2.30.1"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: c2a65bb962bdf2a9c49c69b5358c41f6c66ad10e
+      sha512: f174a560584e489be710939ab3a4690c2354d8f61e542fa8137ddddd9f6d22c5e90fc2c88017aaac73e33fc7ace1bddf709a5fd3b0f53c95860d47dd6ea0cb9d
+      source: https://registry.npmjs.org/moment/2.30.0
+    target_tarball:
+      sha1: f8c91c07b7a786e30c59926df530b4eac96974ae
+      sha512: b849ad3616c33ab58f152fa176314205fcbd7f6628cb3469c1c97e0eaa42ead697db5173b132d055b315fd6ecfccd497eb1fdb842d73037736510e4dcc7ea1a3
+      source: https://registry.npmjs.org/moment/2.30.1
+    sample_available: y
+  - ecosystem: npm
+    package: "dayjs"
+    benign_version: "1.11.22"
+    target_version: "1.11.23"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 757de199cb87ba258d413422af9072a22da86e2d
+      sha512: d58467c73b7f01a6cfdc61f19da07dfdbf9949c08abb94de17e728f81586fa59d6548c0471315cd45544d162cd98d3b7b00e861972f8d22e6a9077db2f3a70ae
+      source: https://registry.npmjs.org/dayjs/1.11.22
+    target_tarball:
+      sha1: b0a363506dde5f36cf5075e42ebe8115165a8c79
+      sha512: 4034c25343343314778507e794325fc1e91089a6a79b5b9b383db7d6eef758172443f7ec6a6c112e2136181cfa0f76bfc45d4d81f8832c98d705ad6160e613b5
+      source: https://registry.npmjs.org/dayjs/1.11.23
+    sample_available: y
+  - ecosystem: npm
+    package: "date-fns"
+    benign_version: "4.3.0"
+    target_version: "4.4.0"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 95663b78f2be5ce664eb6606d94582acc39c77ba
+      sha512: 39870bfb737f8f259b61d146aa8300872b438313fda5b60f51489108e827e057b069a764f65fd66a6e00bdc8a2ca9d81824a5f432055f41f9e867549c9c87e79
+      source: https://registry.npmjs.org/date-fns/4.3.0
+    target_tarball:
+      sha1: 806539edf45c616b2b76b5f78b88c56ed3c7e036
+      sha512: fb550c6de87af251f549e807f370865b0a5be8e1c76e94a0af7face44c30e4ce02020b30069a164b40234ce7c4277dc78982b3d61763fca4c5a6bcd71e6abfeb
+      source: https://registry.npmjs.org/date-fns/4.4.0
+    sample_available: y
+  - ecosystem: npm
+    package: "async"
+    benign_version: "3.2.5"
+    target_version: "3.2.6"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: ebd52a8fdaf7a2289a24df399f8d8485c8a46b66
+      sha512: 6da359caa69a2e1c8b54a9bf0e5bdd5b4e7531280ee9bf1e55f21ece5f44e4fa96c458332e6ff0427b445b8ccecad55bbab0c4af426500b12974e170bc4acbb2
+      source: https://registry.npmjs.org/async/3.2.5
+    target_tarball:
+      sha1: 1b0728e14929d51b85b449b7f06e27c1145e38ce
+      sha512: 86d0940e5c72c822cc81a337c578340b42d6db1a9fb90ea9d39a42108b17bb243e6b592860a4ee04ccd13709b26df2e0bc90cc774af52d39f8f84d138ba0b600
+      source: https://registry.npmjs.org/async/3.2.6
+    sample_available: y
+  - ecosystem: npm
+    package: "bluebird"
+    benign_version: "3.7.1"
+    target_version: "3.7.2"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: df70e302b471d7473489acf26a93d63b53f874de
+      sha512: 0dd9b2a060a57899e46e9de791bc532c9d7cae30ec138c8282013028d5e4795d76dec3cd7ce098783a1eb8e63e17616b4a33b561771353e76ccbde8a332fa072
+      source: https://registry.npmjs.org/bluebird/3.7.1
+    target_tarball:
+      sha1: 9f229c15be272454ffa973ace0dbee79a1b0c36f
+      sha512: 5e9363e860d0cdd7d6fabd969e7ef189201ded33378f39311970464ed58ab925efd71515f9acf1026f2375664dd3a413424fb63765c1f6344392f6e6426711b6
+      source: https://registry.npmjs.org/bluebird/3.7.2
+    sample_available: y
+  - ecosystem: npm
+    package: "rxjs"
+    benign_version: "7.8.1"
+    target_version: "7.8.2"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 6f6f3d99ea8044291efd92e7c7fcf562c4057543
+      sha512: 000dd3563fb40368ae2284245842bfb6a16306ada3fba3cee98d3325cbf32c016110520edc72f4be5b3d8562e77196c001b2b499aafba19e15d3bf48fea3ccc6
+      source: https://registry.npmjs.org/rxjs/7.8.1
+    target_tarball:
+      sha1: 955bc473ed8af11a002a2be52071bf475638607b
+      sha512: 76129ff74dd4fcf41963a6e834db4019d59b1bce5601b8d3ff5c58a19202ec5018d3259aa4e05056c56b0e5e7c5bcebffded55a4c341b5157831a5df74cc9214
+      source: https://registry.npmjs.org/rxjs/7.8.2
+    sample_available: y
+  - ecosystem: npm
+    package: "inquirer"
+    benign_version: "14.1.0"
+    target_version: "14.2.0"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 21a121fa9458a9c5e8b2fb8b315d3bed09315f44
+      sha512: 518d3c28fd3cba073f9b45ce057fad35197918ae4fae37ac89160ced10cc55ccd60b49bae34185efaf039a8b2f9b58f93a9b4cdceafa417be8c1a26a756cd1d3
+      source: https://registry.npmjs.org/inquirer/14.1.0
+    target_tarball:
+      sha1: 3c471cecda0e327d469316105b1f0330af59a020
+      sha512: 394490345eee9bb02f80fc8188ae8435f8ea106e37e287959111bded4f1fa0b7ed39f7097ca7138b9a4cb5a8097b9cad00d3c7e5395b7d5804a24025e914a3ea
+      source: https://registry.npmjs.org/inquirer/14.2.0
+    sample_available: y
+  - ecosystem: npm
+    package: "ora"
+    benign_version: "9.4.0"
+    target_version: "9.4.1"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 0c9bc0128254928be6b65e109d11ba7222620eff
+      sha512: f387209644482c5c5db40f2102f2cd74caed0693cd053ad0f7fba5834140ef12cc9c3ea689fbfe7a70087919afb6ff9681d084f8b3c639f426b4946b55a21585
+      source: https://registry.npmjs.org/ora/9.4.0
+    target_tarball:
+      sha1: ba7644f3c7c92a8f830fbc48ca770b9eaf4bc55c
+      sha512: e95954f4c2d76e35500f4e00642317dbc855b40e5b52869dbd4a8eefa3140950348a5c096cc887b084d13dfc959baa7f042d00bff05732e8f1dfd5827b52c4ab
+      source: https://registry.npmjs.org/ora/9.4.1
+    sample_available: y
+  - ecosystem: npm
+    package: "minimist"
+    benign_version: "1.2.7"
+    target_version: "1.2.8"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: daa1c4d91f507390437c6a8bc01078e7000c4d18
+      sha512: 6f37cbd58519b0fe35826bbfaa3ac493443a8b68b1fdc55e0216c26ea1fdbb7cd8bad4b570b834d2a86b0f4336315742731e127345293f67815a8f6ba2da6aea
+      source: https://registry.npmjs.org/minimist/1.2.7
+    target_tarball:
+      sha1: c1a464e7693302e082a075cee0c057741ac4772c
+      sha512: db2c8047ca8190ddd8ba17896a7529582e54ddb6f9a2c0f2c0d07c4730d5943c031dba1c009bdeaaa8f5bbcf92543ee39164f8cafb070a95aaa96a80c5bd3308
+      source: https://registry.npmjs.org/minimist/1.2.8
+    sample_available: y
+  - ecosystem: npm
+    package: "mkdirp"
+    benign_version: "3.0.0"
+    target_version: "3.0.1"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 758101231418bda24435c0888a91d9bd91f1372d
+      sha512: efe2439cdb320af657a1425d90c474a1413602601db0d5c64e645b88e8d823043aabe6cbe8dc2ba3319074f72661a35cae11f7ec5e741c7054ce868157a1484d
+      source: https://registry.npmjs.org/mkdirp/3.0.0
+    target_tarball:
+      sha1: e44e4c5607fb279c168241713cc6e0fea9adcb50
+      sha512: f8db325140190e6a3a6151f32ffb2dc52bb7b7d612d62963962cb70520eb5c9fdd927d4a61d9ad64e0c61a32dc73d5cb8155691f82ac84707c5e66603216815e
+      source: https://registry.npmjs.org/mkdirp/3.0.1
+    sample_available: y
+  - ecosystem: npm
+    package: "rimraf"
+    benign_version: "6.1.2"
+    target_version: "6.1.3"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 9a0f3cea2ab853e81291127422116ecf2a86ae89
+      sha512: 7050a43ec949bfb0405c9b1894ad5d66c6cff3f64d2e40804346e2d617f910a5f64077a0983144140e9086e609964ed40dd73ed362633bcd1848ead63e9c34ea
+      source: https://registry.npmjs.org/rimraf/6.1.2
+    target_tarball:
+      sha1: afbee236b3bd2be331d4e7ce4493bac1718981af
+      sha512: 2ca83e0abd9917ad5f91c68ad547641f6c840412a76234f25b34c94fa28d3dc48f6a24fb1d2761b4c5d0b8de709135f45eeef6290d65f12e36ae599ec52da148
+      source: https://registry.npmjs.org/rimraf/6.1.3
+    sample_available: y
+  - ecosystem: npm
+    package: "fs-extra"
+    benign_version: "11.3.6"
+    target_version: "11.4.0"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: f7cb80e9df550cd1db6f537fa5cdd568d3e70d10
+      sha512: c3c64d66bda628873ba9e35a43d0153d3d7e885688f80bdde31b9d54ebdd0c9f15cad4448b516de4887b85df638de86877cbc033918cb1f43f4e93dfe04ca810
+      source: https://registry.npmjs.org/fs-extra/11.3.6
+    target_tarball:
+      sha1: f88ed6d180ac9e14b61b08e679468f0b1b6b4730
+      sha512: 110b05ccc509902286af578faa56000e42149875b5b37657af962acbac1b1ab7d40a986997699a33f932388440d87a4fdc06854136570f895d8de93e9dc71d74
+      source: https://registry.npmjs.org/fs-extra/11.4.0
+    sample_available: y
+  - ecosystem: npm
+    package: "classnames"
+    benign_version: "2.5.0"
+    target_version: "2.5.1"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 9304d63d8d7135989e33e1ffb0bcc65178f92c2a
+      sha512: 150b919722a29f1adbe60c0995f54049b4ab0e58a40c9d3be36e93adf3ec7462efb68721a309a46e7485750189d9aa17ad27adab92aa195f5e9af5a9cbef75c4
+      source: https://registry.npmjs.org/classnames/2.5.0
+    target_tarball:
+      sha1: ba774c614be0f016da105c858e7159eae8e7687b
+      sha512: b1a1d83b384842ceb0cb6b15c5333a6d40ec40ee05e7457d450db6a81a447425be23efd69a47b61ce97a952e9d4e97715616fcf3f23af87b3ee37f1cde57d4a3
+      source: https://registry.npmjs.org/classnames/2.5.1
+    sample_available: y
+  - ecosystem: npm
+    package: "prop-types"
+    benign_version: "15.8.0"
+    target_version: "15.8.1"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: d237e624c45a9846e469f5f31117f970017ff588
+      sha512: 7c319e91d68787ae5e23794c8b93a712b53a6bc220860d8a8dc8d0c4eee6f151f25a370fca3e6488e815d4b40338e3a0572dfee458235ef752497ec1f3fe7fe2
+      source: https://registry.npmjs.org/prop-types/15.8.0
+    target_tarball:
+      sha1: 67d87bf1a694f48435cf332c24af10214a3140b5
+      sha512: a23f3b0a064809dba5528868815011ec08e50b4df6ed4e1e9782fa780bcea827ae74c0d553435384d695f9bf437f87578123f58173139cf7617deff6a831f972
+      source: https://registry.npmjs.org/prop-types/15.8.1
+    sample_available: y
+  - ecosystem: npm
+    package: "redux"
+    benign_version: "5.0.0"
+    target_version: "5.0.1"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 29572e29a439e094ff8fec46883fc45053f6736d
+      sha512: 6e52c862661eb6964c113e90eae098ec9b65fc89b938195dcbebcd3dab80f2fbec76acadebaa1ea78114a403163476ae4c2eb16bd26e44f85107bdab63cd9018
+      source: https://registry.npmjs.org/redux/5.0.0
+    target_tarball:
+      sha1: 97fa26881ce5746500125585d5642c77b6e9447b
+      sha512: 33dfc42ea17a7f2f05c269299c5d12dd828ea8cca8589e3e092e447e0d9cb77a18f5d690bddfcf73bd45a4666c56c6e5dc2a5bf8821c8c10d49e7c817506eae3
+      source: https://registry.npmjs.org/redux/5.0.1
+    sample_available: y
+  - ecosystem: npm
+    package: "react-redux"
+    benign_version: "9.2.0"
+    target_version: "9.3.0"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 96c3ab23fb9a3af2cb4654be4b51c989e32366f5
+      sha512: 44e63d7ef1e1c0e0fdc927eb174c26beefff6ca090e8079966ad6724db5b0c2fa49390ee4ae357fe7e9859817f498cbb6d26dae03e054b3f0325e298fd2febfa
+      source: https://registry.npmjs.org/react-redux/9.2.0
+    target_tarball:
+      sha1: a30113bb6d95c0a715d54dda4308d450fca6ce09
+      sha512: 290a2982a168fe9fdf82602ce6acfaa7945668d033ab8d1602eedf2485e742963114f6c962db093d6bc6785dab381698fe412e57bec056c5fc4ec4332a6f80fe
+      source: https://registry.npmjs.org/react-redux/9.3.0
+    sample_available: y
+  - ecosystem: npm
+    package: "react-router"
+    benign_version: "8.3.0"
+    target_version: "8.3.1"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: b7bc69c3e3833ba79ebf892aef03d62b649508f8
+      sha512: ab23ccbd6f378c621cb77ca289e8acc5d93d33be396a7aa1a4830a3799b5b7ac8131f8153e9b7beda1ceaace5f52510944c0867df83d05a40b1fda0f54e2fbc5
+      source: https://registry.npmjs.org/react-router/8.3.0
+    target_tarball:
+      sha1: d704ca5a564e2bc89ce05a537ab577578e947b7b
+      sha512: 4c43a988eda0d1324710e25e455bf86a6505ba7f6fd67a422accef72ab8dbf311352d27cb9d57ce9a879785a074fb836e9bb01bd3e8488886aba547c78317ef8
+      source: https://registry.npmjs.org/react-router/8.3.1
+    sample_available: y
+  - ecosystem: npm
+    package: "vue"
+    benign_version: "3.5.41"
+    target_version: "3.5.42"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 8864bddfe59ce128a28c9bad219cd9248916af73
+      sha512: da5684d29f9a2befc038f1bf5cbfd67a93acfc694aef9e4b2755c40a2f640d4af3d4528dc3cadbd97ce5c3d252d6ba84579e676f4b6db0ac5595309c77e47972
+      source: https://registry.npmjs.org/vue/3.5.41
+    target_tarball:
+      sha1: 6099e750a19c68a5c09f785808d5abb01558a3c1
+      sha512: e11c874136d0bce3ecdcc7ef50ed52834611aca36703498056dbe9775d938357ca0cdece1c1525d48a929fccc62632bd9c8dcd90da7c7204e956b4990b94d370
+      source: https://registry.npmjs.org/vue/3.5.42
+    sample_available: y
+  - ecosystem: npm
+    package: "next"
+    benign_version: "16.3.3"
+    target_version: "16.3.4"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: dc062aa903c34e2af41a0ffa2ad99c9369447d07
+      sha512: b6e453c759d0ff2570f37730241a3d17e9e319480c9f750743272b7961c1f17b12b6fbc087502d85b23cff82292a715a179f05fa24a21de8d83a5310fdeabcde
+      source: https://registry.npmjs.org/next/16.3.3
+    target_tarball:
+      sha1: eaa69d905ac44ad8d57e8f3461d9da0fc4a7058b
+      sha512: fd9b5fe827911fe7a311752b62da88e20912eba785207b92c2a8bad1181ca562a8771159c76fdda9508c281c082df0075d0f85d5bd6f02e7608f79a7c6ab6820
+      source: https://registry.npmjs.org/next/16.3.4
+    sample_available: y
+  - ecosystem: npm
+    package: "nodemon"
+    benign_version: "3.1.13"
+    target_version: "3.1.14"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 06e4861d8f8a8033c9f607ae3645d3c02ca1c061
+      sha512: 9cf37a2fb03d713037067277cd92226c7e4588387719b9a26de4b5edb9796045352113b699c7ef4746495c7de776878a22d8d471a5fcd4548a73f2aafc8886ea
+      source: https://registry.npmjs.org/nodemon/3.1.13
+    target_tarball:
+      sha1: 8487ca379c515301d221ec007f27f24ecafa2b51
+      sha512: 8da923662f7752d0778c7316b172faf055d2028b1b2df634227e60b4aab79e22d292b5b39eb541cd714d38430951f73df8a7bb4875a8019b2232434fdefaba27
+      source: https://registry.npmjs.org/nodemon/3.1.14
+    sample_available: y
+  - ecosystem: npm
+    package: "body-parser"
+    benign_version: "2.2.2"
+    target_version: "2.3.0"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 1a32cdb966beaf68de50a9dfbe5b58f83cb8890c
+      sha512: a0fe559004ca94dc1c82fc62d2f334a7f0f79f60b7111798557f83358b394e36459ffa10b768fee2c549b5232bd7ca5d46bf308d370197a2e857e154c333e634
+      source: https://registry.npmjs.org/body-parser/2.2.2
+    target_tarball:
+      sha1: 6d8662f4d8c336028b8ac9aa24251b0ca64ba437
+      sha512: d9c1a626ea5a36083e414c152c0b9c0ee5aea0c67a117f621c346cc19e65b0d6049b03da4649cc3c22d9cf4ef24f356affcde9e28ff0cdb0d96c1ad3bc619323
+      source: https://registry.npmjs.org/body-parser/2.3.0
+    sample_available: y
+  - ecosystem: npm
+    package: "cors"
+    benign_version: "2.8.5"
+    target_version: "2.8.6"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: eac11da51592dd86b9f06f6e7ac293b3df875d29
+      sha512: 2881db2c9aaeef7446aff8676eb3bdb817a2c4d1aebd2423ba5fe3745bd2fca152207d615957759e0ef3387c7e62b11f2272c6eeae27e861d0f5c0edc6ffcfea
+      source: https://registry.npmjs.org/cors/2.8.5
+    target_tarball:
+      sha1: ff5dd69bd95e547503820d29aba4f8faf8dfec96
+      sha512: b49b590411c0eaf8c801a17a12721aaba95a0413fd6aafd8de8b9526311fa076d105c1c100761c321ff0f0b0eb9363ef20c32af209a8a5ae43e15f1199baf11b
+      source: https://registry.npmjs.org/cors/2.8.6
+    sample_available: y
+  - ecosystem: npm
+    package: "cookie-parser"
+    benign_version: "1.4.6"
+    target_version: "1.4.7"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 3ac3a7d35a7a03bbc7e365073a26074824214594
+      sha512: cf723368d8ddc140b6a252c8079fc84ddd3fb1eb6268530b62264995eef183915ef4a58071e8a5ef1b3361f1c706d0c560b4a025db92d93cb43f5b8974f0c978
+      source: https://registry.npmjs.org/cookie-parser/1.4.6
+    target_tarball:
+      sha1: e2125635dfd766888ffe90d60c286404fa0e7b26
+      sha512: 9c652f8179e8b4fdc1b2388b5f6ca96d09d6a0650f2087c740d664902ebaf27b6bcc65846555bbd070c4075aa734632270f8dee84b6d948833a39d584b03501b
+      source: https://registry.npmjs.org/cookie-parser/1.4.7
+    sample_available: y
+  - ecosystem: npm
+    package: "jsonwebtoken"
+    benign_version: "9.0.2"
+    target_version: "9.0.3"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 65ff91f4abef1784697d40952bb1998c504caaf3
+      sha512: 3d1a7aeaf27ceb9492a8e960a92f21ba34f953800e80c7e1af0608b8885f29aa12099722aeb980490afc097edc520f9132287e860ce7ae3a7df68f96e2924b1d
+      source: https://registry.npmjs.org/jsonwebtoken/9.0.2
+    target_tarball:
+      sha1: 6cd57ab01e9b0ac07cb847d53d3c9b6ee31f7ae2
+      sha512: 313ff13f40abb9b15134b34abf12760587f2e776649befb96d7f5db6e3dba80790a5355ed0c4131616a8f3e0a9fff126269db8e31b7a0ebc3f1951060948f8d2
+      source: https://registry.npmjs.org/jsonwebtoken/9.0.3
+    sample_available: y
+  - ecosystem: npm
+    package: "bcryptjs"
+    benign_version: "3.0.2"
+    target_version: "3.0.3"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: caadcca1afefe372ed6e20f86db8e8546361c1ca
+      sha512: 937f1bdd73992afeb40b8136855b174e894959f90644c6c82c121ed880484d7722cb96ceb132a8b79903adfdd97ee7d0b5039437999771e504a54d6b4e5f54a2
+      source: https://registry.npmjs.org/bcryptjs/3.0.2
+    target_tarball:
+      sha1: 4b93d6a398c48bfc9f32ee65d301174a8a8ea56f
+      sha512: 1a5179c0f5a749afd7e4b28cd68d30cf4b2e5c820dcf588744bbd34beb0bca2ed73db7b9c9c9982370e566a546659b43825e0399ab0583b80e0772586e9855e6
+      source: https://registry.npmjs.org/bcryptjs/3.0.3
+    sample_available: y
+  - ecosystem: npm
+    package: "mongoose"
+    benign_version: "9.9.3"
+    target_version: "9.9.4"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: 666bc52edbc02c5ae2eb66396dddcc713fa29299
+      sha512: f5d41a29cb74e4b360564ba70f314f66c1860618a7a1b97741ce41e4a60990b346e6504b82a11250422d97511422455a0b0649181813baf2621408e32004c28b
+      source: https://registry.npmjs.org/mongoose/9.9.3
+    target_tarball:
+      sha1: 34598615ad4db617f6a8b53f89be69e3cf1cbfdb
+      sha512: 19cedbb9fd04c6b399dedf0c0fcb55cd37a4ed0af977eb44c23e064459870ad4d9be96836f7f0456c5e00a461a70f2fd20201fb604be1467be7501cb44b1e173
+      source: https://registry.npmjs.org/mongoose/9.9.4
+    sample_available: y
+  - ecosystem: npm
+    package: "pg"
+    benign_version: "8.22.0"
+    target_version: "8.23.0"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 55ca3975026180c6dced6eec3a20a844c2dc9237
+      sha512: f308a1d6f54804cc6850cda8078b2826c0fdb439c3a4bbf8397049f8427316cbf2703fa57f222b782da0187abbf1ff236cb2edf9bbe53d315d1597c990ebb300
+      source: https://registry.npmjs.org/pg/8.22.0
+    target_tarball:
+      sha1: 5c2026d32bd0cb4fbd9196bac1ecf5ae66607180
+      sha512: 229d844029e0a3024b18e7c2c241613d753bfe58e5867e91c659b2e1761f2f663ebf244ce7dfbcb91db1a9158a75899b5e6c4214e0262b106e49409d177e2a2e
+      source: https://registry.npmjs.org/pg/8.23.0
+    sample_available: y
+  - ecosystem: npm
+    package: "mysql2"
+    benign_version: "3.24.1"
+    target_version: "3.24.2"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: ae2b3d0164062aa479fcea851709ee6f0fbe77ab
+      sha512: ce169be966962fd982a7be037a02bf212f4f5bdc9d29abfa04163b25953c4aa8d0181066cf6165b18eb698d293a1f6356b4a5603637ff486406dbea542950312
+      source: https://registry.npmjs.org/mysql2/3.24.1
+    target_tarball:
+      sha1: 7a3cb17bfa00a354be97cd6d0a37ba4592da5767
+      sha512: 97d91778a1b077a5426d28e6a4efdb2d66fe6026296ef138c21b5ef1e73a2275de6ef08dc841327724429d153e4d21cda912c9f01f93935b966febcc089809cc
+      source: https://registry.npmjs.org/mysql2/3.24.2
+    sample_available: y
+  - ecosystem: npm
+    package: "redis"
+    benign_version: "6.2.0"
+    target_version: "6.2.1"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 38c599cd21c985921063b3d858a17030c2623e32
+      sha512: 0528585724f41b1ebb084f34c6bcb95eba124afe95c6beb4c8ab341d18816d473b9079be6d8ee0bd20c10604e3ba257fade58a79958bc80d5e6c2e73df9f7045
+      source: https://registry.npmjs.org/redis/6.2.0
+    target_tarball:
+      sha1: 8f5f2aff8e59b57d169a6a03416cc90a1f0a9a5c
+      sha512: 67d547b6062ce3c3e2402efb5fd3b612bf078f84fee41b458d3f75fef8b922cd43d3837bd9c03de3a66c94cd48989c3c65cb4505958056333b4b9c0935e1cca6
+      source: https://registry.npmjs.org/redis/6.2.1
+    sample_available: y
+  - ecosystem: npm
+    package: "socket.io"
+    benign_version: "4.8.2"
+    target_version: "4.8.3"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: bac704b1d5abc2ef71173d18f9b362015cd96fa4
+      sha512: c0c0080af34724db6777726af7bc513b2472163310d86f10b1517a57e2bafba973b4fdc66937086a8b3ee84efef230ff36863efbfbc2bd4f4023e6ef44135757
+      source: https://registry.npmjs.org/socket.io/4.8.2
+    target_tarball:
+      sha1: ca6ba1431c69532e1e0a6f496deebeb601dbc4df
+      sha512: d8377bf1bab3ce313a28f903e5f1d998300a44d7b7275e6af981c3ac8b32f56124aadb5cec663e913f4e04b48c68f6d0684774c75063726b4cb5791fa5cf93e4
+      source: https://registry.npmjs.org/socket.io/4.8.3
+    sample_available: y
+  - ecosystem: npm
+    package: "ajv"
+    benign_version: "8.18.0"
+    target_version: "8.20.0"
+    case_type: routine
+    provenance_present: n
+    benign_tarball:
+      sha1: 8864186b6738d003eb3a933172bb3833e10cefbc
+      sha512: 3e55cf78458c5cc67bb0f60e1ea983c8227371f36b52bddf18d2ad7b35f5e3291738422fc8af3577eab2771f3d298e4eef514a30f690daf05f04523934747adc
+      source: https://registry.npmjs.org/ajv/8.18.0
+    target_tarball:
+      sha1: 304b3636add88ba7d936760dd50ece006dea95f9
+      sha512: 4e16e58be3a53a3fa230f60505505f2773a60809da4b2367e0cd6fcfd4fa1a46b926df5b6bf1c8479ea3a32eb9b58ea4c7f142179557341f35f58eff194ac118
+      source: https://registry.npmjs.org/ajv/8.20.0
+    sample_available: y
+  - ecosystem: npm
+    package: "zod"
+    benign_version: "4.5.3"
+    target_version: "4.5.4"
+    case_type: routine
+    provenance_present: y
+    benign_tarball:
+      sha1: eed81c34989f66e7c06f579b7c99fe96ccfa75ab
+      sha512: 0d50030ecdab73e9c46eab7e2ec77511293a16893248e0027cbba89fa30dacb9c57c4e0405d81bdc3717ae71e69e021904174fcf63c930f06d83368c224e7d64
+      source: https://registry.npmjs.org/zod/4.5.3
+    target_tarball:
+      sha1: e215c62420c528dd7951e31fb52c5438f1fd184a
+      sha512: b02f79b53e621c71fd82da63e80f35921f8d11a44050537eaa550f0d46d17ce32f35fe50081aac6f75a0be7a55b4ae58fb851f03a2aab9fa2db93bcc1a24e5b0
+      source: https://registry.npmjs.org/zod/4.5.4
+    sample_available: y

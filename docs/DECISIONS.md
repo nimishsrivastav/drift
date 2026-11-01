@@ -143,3 +143,16 @@ values too. Many advisories only state npm's SHA-1 `shasum`. The `source` makes 
 recovered file must be verified against one before use. The validator rejects duplicate keys and non-string versions,
 because PyYAML otherwise keeps the last duplicate and reads `1.10` as the number 1.1, either of which silently corrupts the
 dataset.
+
+## 2026-11-01: Seeded incidents record only what a cited source states
+
+16 npm incidents are seeded, and only axios has `sample_available: y`. Other incidents listed in the DataDog dataset stay `n`
+with a note, because no cited source states their tarball hash. Sources give hashes of files inside the package, not of
+the tarball, and OSV's origin `sha256` values identify source reports. M8 needs another way to get verifiable hashes, for
+example from the dataset's own metadata, before those samples can be used.
+
+`chalk`, `debug` and `rc` are held out: their sources establish that they were malicious but not when the payload runs, and
+`payload_context` is required. `faker` and `@rspack/core` are also not seeded. Add them when a source settles the field.
+
+Hard-negative rationales say only what registry metadata shows, because reading a tarball on the host is not allowed. M3's
+analyzers can confirm the behavior each one implies. Each pair's trait was checked against the metadata of both versions.

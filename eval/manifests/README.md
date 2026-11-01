@@ -47,5 +47,12 @@ target_tarball:
   note: No cited source states a hash for this version.
 ```
 
+Check what a hash covers before recording it. Most of the hashes in advisories are not tarball hashes:
+
+- The `sha256` in an OSV `MAL-` record's `malicious-packages-origins` identifies the source report. One value can
+  cover several versions, and one version can have several values.
+- Vendor IOCs usually hash files inside the package or the binaries it drops.
+- Long hex strings in write-ups can be wallet or contract addresses from the payload.
+
 Across all files, the validator also rejects a repeated pair, and a version listed as malicious in `positives.yaml`
 appearing on the benign side of any pair, or as the target of a negative.

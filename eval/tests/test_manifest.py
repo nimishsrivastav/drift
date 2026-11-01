@@ -429,8 +429,21 @@ def test_main(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert main([]) == 2
 
 
+COMMITTED = Path(__file__).resolve().parents[1] / "manifests"
+
+
 def test_committed_manifests_validate() -> None:
-    directory = Path(__file__).resolve().parents[1] / "manifests"
-    manifests, problems = validate_directory(directory)
+    manifests, problems = validate_directory(COMMITTED)
     assert [str(problem) for problem in problems] == []
     assert set(REQUIRED_MANIFESTS) <= set(manifests)
+
+
+# PLAN.md M2: at least 10 npm incidents across different case types, 50 routine, 10 hard negatives.
+def test_committed_manifests_meet_the_seed_targets() -> None:
+    manifests, _ = validate_directory(COMMITTED)
+    positives = manifests["positives.yaml"].pairs
+    assert len({pair.package for pair in positives if pair.ecosystem == "npm"}) >= 10
+    assert len({pair.case_type for pair in positives}) >= 4
+    assert {pair.payload_context for pair in positives} == {"install", "import", "call"}
+    assert len(manifests["routine.yaml"].pairs) >= 50
+    assert len(manifests["hard_negatives.yaml"].pairs) >= 10
