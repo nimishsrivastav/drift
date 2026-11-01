@@ -275,15 +275,15 @@ Tick boxes as tasks complete. Each milestone ends with its acceptance criteria v
   - [x] `skills/add-incident/SKILL.md`: add a manifest entry from advisory metadata + hashes, never downloading or extracting samples
   - [x] `agents/security-reviewer.md` (tools: Read, Grep, Glob): reviews parsers, the unpacker and workflows for untrusted-input bugs
   - [x] `agents/acceptance-checker.md` (tools: Read, Grep, Glob, Bash): independently verifies a milestone's acceptance criteria
-- [ ] CI (GitHub Actions): buf lint/breaking, Go/Rust/Python lint + test
-- [ ] CI as a matrix across components with per-toolchain caching (Go modules/build cache, `Swatinem/rust-cache`, uv cache)
-- [ ] CI hardening:
+- [x] CI (GitHub Actions): buf lint/breaking, Go/Rust/Python lint + test
+- [x] CI as a matrix across components with per-toolchain caching (Go modules/build cache, `Swatinem/rust-cache`, uv cache)
+- [x] CI hardening:
   - [x] every third-party action pinned to a full commit SHA (with a version comment)
   - [x] top-level `permissions: {}` (or `contents: read`) and per-job minimal grants
   - [x] no `pull_request_target`; no secrets in PR-triggered jobs
   - [x] `actionlint` + `zizmor` (Actions security linter) run on `.github/workflows/**`
   - [x] Dependabot config for `github-actions`, `gomod`, `cargo`, `pip`/uv, and `docker` ecosystems
-- [ ] Branch ruleset on `main`: require CI checks, block force-push
+- [x] Branch ruleset on `main`: require CI checks, block force-push
 - [x] `docs/DECISIONS.md` created
 
 **Acceptance**: `just gen && just build && just test && just lint` pass; `just up` starts all services and the
