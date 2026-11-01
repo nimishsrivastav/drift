@@ -99,3 +99,13 @@ orchestrator image needs git. Tags can move, so the commit we actually checked o
 Why: parsing archives belongs to Rust (`CLAUDE.md`). `drift analyze` may fetch a malicious version if a registry still
 serves it, and that is safe only because the file stays compressed and read-only (0444) outside any repo checkout. Real
 samples kept for evaluation still follow rule 3.
+
+## 2026-11-01: The job store is SQLite, through the pure-Go `modernc.org/sqlite`
+
+Full messages are stored as protojson, with only the columns we filter on broken out. A sub-job's depth is derived from its
+parent instead of being passed in, and a job has one report, which is never overwritten.
+
+Why: `PLAN.md` allows SQLite or Postgres, and SQLite needs no extra service for a local CLI run. The images build with
+`CGO_ENABLED=0`, which rules out the cgo driver. Deriving depth means it can't disagree with the parent, and a saved verdict
+stays what was reported at the time, so tuning runs create new jobs. Revisit SQLite if watch mode needs several writers
+across hosts.
