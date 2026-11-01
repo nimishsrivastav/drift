@@ -1,0 +1,129 @@
+// The drift plugin contract. Every analyzer implements the same Analyzer service,
+// whatever language it is written in.
+syntax = "proto3";
+
+package drift.v1;
+
+option go_package = "github.com/nimishsrivastav/drift/gen/go/drift/v1;driftv1";
+
+enum Ecosystem {
+  ECOSYSTEM_UNSPECIFIED = 0;
+  ECOSYSTEM_NPM = 1;
+  ECOSYSTEM_PYPI = 2;
+  ECOSYSTEM_CRATES = 3;
+}
+
+// When code runs, which drives severity.
+enum ExecContext {
+  EXEC_CONTEXT_UNSPECIFIED = 0;
+  EXEC_CONTEXT_INSTALL = 1;
+  EXEC_CONTEXT_IMPORT = 2;
+  EXEC_CONTEXT_CALL = 3;
+}
+
+enum Capability {
+  CAPABILITY_UNSPECIFIED = 0;
+  CAPABILITY_NETWORK = 1;
+  CAPABILITY_PROCESS_SPAWN = 2;
+  CAPABILITY_FS_SENSITIVE_READ = 3;
+  CAPABILITY_ENV_ACCESS = 4;
+  CAPABILITY_DYNAMIC_CODE = 5;
+  CAPABILITY_OBFUSCATION = 6;
+  CAPABILITY_NATIVE_BINARY = 7;
+  CAPABILITY_CRYPTO_WALLET = 8;
+  CAPABILITY_INSTALL_HOOK = 9;
+}
+
+enum Verdict {
+  VERDICT_UNSPECIFIED = 0;
+  VERDICT_BENIGN = 1;
+  VERDICT_REVIEW = 2;
+  VERDICT_SUSPICIOUS = 3;
+}
+
+message PackageVersion {
+  Ecosystem ecosystem = 1;
+  string name = 2;
+  string version = 3;
+  // Local path inside the shared volume, read-only to analyzers.
+  string tarball_path = 4;
+  string tarball_sha256 = 5;
+  // Optional checkout at the matching tag or commit.
+  string repo_path = 6;
+  string repo_ref = 7;
+}
+
+message ArtifactPair {
+  string job_id = 1;
+  // Unset means new-package mode: a newly added dependency, so analyzers report
+  // absolute capabilities instead of a diff.
+  PackageVersion old = 2;
+  PackageVersion new = 3;
+  // Set for dependency sub-jobs.
+  string parent_job_id = 4;
+  // 0 is the package being updated.
+  uint32 depth = 5;
+}
+
+message Evidence {
+  string file = 1;
+  uint32 line = 2;
+  // Truncated to at most 200 characters.
+  string snippet = 3;
+  // Normalized dynamic event, if the evidence is dynamic.
+  string trace_event = 4;
+}
+
+message DriftFinding {
+  // For example "static-rs", "trace-rs" or "meta-go".
+  string analyzer = 1;
+  // For example "capability_added", "new_dns_query", "tarball_only_file" or "dependency_added".
+  string kind = 2;
+  Capability capability = 3;
+  ExecContext context = 4;
+  repeated Evidence evidence = 5;
+  // The analyzer's own confidence, from 0 to 1.
+  double confidence = 6;
+  map<string, string> attrs = 7;
+  // Set when rolled up from a dependency sub-job, for example "plain-crypto-js@4.2.1".
+  string via_dependency = 8;
+}
+
+message AnalyzeResponse {
+  repeated DriftFinding findings = 1;
+  // Non-fatal analyzer errors.
+  repeated string errors = 2;
+  uint64 duration_ms = 3;
+}
+
+message InfoRequest {}
+
+message InfoResponse {
+  string name = 1;
+  string version = 2;
+  repeated Ecosystem ecosystems = 3;
+}
+
+service Analyzer {
+  rpc Analyze(ArtifactPair) returns (AnalyzeResponse);
+  rpc Info(InfoRequest) returns (InfoResponse);
+}
+
+message DriftReport {
+  ArtifactPair pair = 1;
+  repeated DriftFinding findings = 2;
+  double score = 3;
+  Verdict verdict = 4;
+  // Human-readable summary.
+  string explanation = 5;
+  repeated string fired_rules = 6;
+}
+
+message ScoreRequest {
+  ArtifactPair pair = 1;
+  repeated DriftFinding findings = 2;
+}
+
+service Scorer {
+  rpc Score(ScoreRequest) returns (DriftReport);
+}
