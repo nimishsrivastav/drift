@@ -1,0 +1,13 @@
+[project]
+name = "drift-eval"
+version = "0.1.0"
+description = "drift's evaluation harness, metrics and manifests"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drift_eval"]
