@@ -1,0 +1,18 @@
+# Allowlist: only source reaches the build context, so datasets and samples under eval/data
+# can never be sent to the daemon or baked into an image.
+*
+!.python-version
+!Cargo.lock
+!Cargo.toml
+!analyzers/
+!crates/
+!eval/pyproject.toml
+!eval/src/
+!gen/
+!go.work
+!go.work.sum
+!orchestrator/
+!proto/
+!pyproject.toml
+!scorer/
+!uv.lock
