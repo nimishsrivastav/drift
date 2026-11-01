@@ -109,3 +109,12 @@ Why: `PLAN.md` allows SQLite or Postgres, and SQLite needs no extra service for 
 `CGO_ENABLED=0`, which rules out the cgo driver. Deriving depth means it can't disagree with the parent, and a saved verdict
 stays what was reported at the time, so tuning runs create new jobs. Revisit SQLite if watch mode needs several writers
 across hosts.
+
+## 2026-11-01: A repo lookup failure doesn't fail the job, and `unresolved` doesn't say why
+
+A missing or undownloadable tarball fails the job. Any repo error except cancellation records `repo_ref = "unresolved"` and
+logs the reason. Each version uses the repository URL it declares itself, so a repo that moved between versions still resolves.
+
+Why: plenty of benign releases have no tag, and static and dynamic analysis can still run without the source. The known gap
+is that a transient network failure looks the same as a missing tag. `meta-go` must not treat `unresolved` as proof that a
+tag is missing when it adds that signal in M7: it should distinguish the two, by re-checking or by a new field.

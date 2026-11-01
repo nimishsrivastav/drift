@@ -24,6 +24,9 @@ import (
 	"time"
 )
 
+// Unresolved is the repo_ref recorded when a version has no usable repository or tag.
+const Unresolved = "unresolved"
+
 const (
 	defaultTimeout  = 5 * time.Minute
 	defaultMaxBytes = 2 << 30
