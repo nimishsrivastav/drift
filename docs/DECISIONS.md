@@ -67,3 +67,35 @@ upstream artifacts.
 
 The Go module path assumes the GitHub repo is named `drift`. The checkout is not at the `~/drift` that `CLAUDE.md` mentions,
 but it is on the WSL filesystem, which is the part of that rule that matters.
+
+## 2026-11-01: The default "previous version" is by semver, not publish time
+
+With no `--from`, the predecessor is the highest semver below the target that was published before it, skipping
+prereleases when the target is stable. With no such version, the job runs in new-package mode.
+
+Why: publish order compares a backport with an unrelated major line (3.4.2 published after 4.0.0 would diff against
+4.0.0). The publish-time filter stops a later backport to an older line from counting as a predecessor.
+
+## 2026-11-01: Package-named tags win over `vX.Y.Z`, the reverse of the order in PLAN.md
+
+Tags are tried as `name@X.Y.Z`, then the unscoped `name@X.Y.Z` for a scoped package, then `vX.Y.Z`, then `X.Y.Z`.
+
+Why: in a monorepo a bare `v1.2.3` may belong to a different package, and comparing a tarball against the wrong commit
+would produce false tarball-only findings. The extra unscoped form is a common monorepo convention.
+
+## 2026-11-01: Repo resolution shells out to `git`, restricted to HTTPS on three forges
+
+`repository` is attacker-controlled, so URLs are rewritten to `https://` on github.com, gitlab.com or bitbucket.org, and
+anything else stays unresolved. Git runs from an environment built from nothing, with `GIT_ALLOW_PROTOCOL=https`, no
+hooks, submodules, symlinks or host config. Checkouts drop `.git` and live under `<url hash>/<commit>`.
+
+Why: the host allowlist stops a package aiming git at internal addresses, and the protocol restriction stops transport
+helpers such as `ext::`, which run commands. Git itself is more robust against hostile remotes than a library, and these
+options are its documented controls. The cost is that packages hosted elsewhere get no tarball-vs-repo diff, and that the
+orchestrator image needs git. Tags can move, so the commit we actually checked out is what gets recorded.
+
+## 2026-11-01: A tarball is stored as an opaque blob and never unpacked by the orchestrator
+
+Why: parsing archives belongs to Rust (`CLAUDE.md`). `drift analyze` may fetch a malicious version if a registry still
+serves it, and that is safe only because the file stays compressed and read-only (0444) outside any repo checkout. Real
+samples kept for evaluation still follow rule 3.
