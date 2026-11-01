@@ -1,0 +1,12 @@
+[package]
+name = "safe-unpack"
+description = "Hardened archive extraction for untrusted packages"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

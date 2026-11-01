@@ -1,0 +1,50 @@
+[project]
+name = "drift-workspace"
+version = "0.1.0"
+description = "uv workspace root for drift's Python components"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+    "types-grpcio>=1.85.0.20261028",
+    "types-protobuf>=7.35.1.20260906",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["gen/python", "scorer", "eval"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["gen"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101"]
+
+[tool.pytest.ini_options]
+testpaths = ["scorer/tests", "eval/tests"]
+addopts = "--import-mode=importlib"
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+mypy_path = "gen/python/src:scorer/src"
+explicit_package_bases = true
+namespace_packages = true
+# The grpc/python plugin emits untyped code; drift_pb2.pyi covers the message types.
+untyped_calls_exclude = ["drift.v1.drift_pb2_grpc"]
+
+[[tool.mypy.overrides]]
+module = "drift.v1.drift_pb2_grpc"
+ignore_missing_imports = true
+disallow_any_unimported = false

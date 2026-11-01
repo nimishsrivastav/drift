@@ -1,0 +1,56 @@
+name: drift
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: "no"
+  networks: [drift-internal]
+
+services:
+  orchestrator:
+    <<: *hardening
+    build:
+      context: ..
+      dockerfile: orchestrator/Dockerfile
+    volumes:
+      - artifacts:/artifacts
+    depends_on: [meta-go, static-rs, trace-rs, scorer]
+
+  meta-go:
+    <<: *hardening
+    build:
+      context: ..
+      dockerfile: analyzers/meta-go/Dockerfile
+    volumes:
+      - artifacts:/artifacts:ro
+
+  static-rs:
+    <<: *hardening
+    build:
+      context: ..
+      dockerfile: crates/static-rs/Dockerfile
+    volumes:
+      - artifacts:/artifacts:ro
+
+  trace-rs:
+    <<: *hardening
+    build:
+      context: ..
+      dockerfile: crates/trace-rs/Dockerfile
+    volumes:
+      - artifacts:/artifacts:ro
+
+  scorer:
+    <<: *hardening
+    build:
+      context: ..
+      dockerfile: scorer/Dockerfile
+
+networks:
+  # No route out and no published ports. M2 gives the orchestrator its own registry egress.
+  drift-internal:
+    internal: true
+
+volumes:
+  artifacts:

@@ -1,0 +1,10 @@
+# Analyzer gRPC endpoints. Hostnames are service names in deploy/docker-compose.yml.
+analyzers:
+  - name: meta-go
+    endpoint: meta-go:50051
+  - name: static-rs
+    endpoint: static-rs:50051
+  - name: trace-rs
+    endpoint: trace-rs:50051
+  - name: scorer
+    endpoint: scorer:50051
