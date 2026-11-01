@@ -258,12 +258,12 @@ message ScoreRequest { ArtifactPair pair = 1; repeated DriftFinding findings = 2
 Tick boxes as tasks complete. Each milestone ends with its acceptance criteria verified.
 
 ### M1 — Foundations (week 1)
-- [ ] Monorepo layout as in `CLAUDE.md`; `.gitignore` (incl. `eval/data/`, `.claude/settings.local.json`, `CLAUDE.local.md`), license, README stub
-- [ ] Workspace roots: `go.work`, root `Cargo.toml` (workspace with `crates/*`), root `pyproject.toml` (uv workspace with `scorer`, `eval`)
-- [ ] `proto/` with `buf.yaml`, `buf.gen.yaml` generating Go + Python stubs into `gen/`; `crates/drift-proto` with `tonic-build`
-- [ ] Hello-world `Analyzer` service in each language implementing `Info`
-- [ ] `Justfile`: `gen`, `build`, `test`, `lint`, `up`, `down`
-- [ ] `deploy/docker-compose.yml` bringing up all services
+- [x] Monorepo layout as in `CLAUDE.md`; `.gitignore` (incl. `eval/data/`, `.claude/settings.local.json`, `CLAUDE.local.md`), license, README stub
+- [x] Workspace roots: `go.work`, root `Cargo.toml` (workspace with `crates/*`), root `pyproject.toml` (uv workspace with `scorer`, `eval`)
+- [x] `proto/` with `buf.yaml`, `buf.gen.yaml` generating Go + Python stubs into `gen/`; `crates/drift-proto` with `tonic-build`
+- [x] Hello-world `Analyzer` service in each language implementing `Info`
+- [x] `Justfile`: `gen`, `build`, `test`, `lint`, `up`, `down`
+- [x] `deploy/docker-compose.yml` bringing up all services
 - [x] Claude Code project config (`.claude/`):
   - [x] `settings.json`: allow routine commands (`just`, `cargo`, `go`, `uv`, `buf`, read-only `git`); deny `Read(./eval/data/samples/**)`, `npm install`/`npm i`/`pip install` on the host, and pipe-to-shell downloads; register the two hooks below
   - [x] `hooks/guard-samples.sh` (PreToolUse, Bash): block any command that references `eval/data/samples` unless it is a `docker run --runtime=runsc …`; exit 2 with a clear reason
@@ -278,11 +278,11 @@ Tick boxes as tasks complete. Each milestone ends with its acceptance criteria v
 - [ ] CI (GitHub Actions): buf lint/breaking, Go/Rust/Python lint + test
 - [ ] CI as a matrix across components with per-toolchain caching (Go modules/build cache, `Swatinem/rust-cache`, uv cache)
 - [ ] CI hardening:
-  - [ ] every third-party action pinned to a full commit SHA (with a version comment)
-  - [ ] top-level `permissions: {}` (or `contents: read`) and per-job minimal grants
-  - [ ] no `pull_request_target`; no secrets in PR-triggered jobs
-  - [ ] `actionlint` + `zizmor` (Actions security linter) run on `.github/workflows/**`
-  - [ ] Dependabot config for `github-actions`, `gomod`, `cargo`, `pip`/uv, and `docker` ecosystems
+  - [x] every third-party action pinned to a full commit SHA (with a version comment)
+  - [x] top-level `permissions: {}` (or `contents: read`) and per-job minimal grants
+  - [x] no `pull_request_target`; no secrets in PR-triggered jobs
+  - [x] `actionlint` + `zizmor` (Actions security linter) run on `.github/workflows/**`
+  - [x] Dependabot config for `github-actions`, `gomod`, `cargo`, `pip`/uv, and `docker` ecosystems
 - [ ] Branch ruleset on `main`: require CI checks, block force-push
 - [x] `docs/DECISIONS.md` created
 
