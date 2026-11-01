@@ -77,3 +77,10 @@ down:
 
 logs service="orchestrator":
     {{ compose }} logs {{ service }}
+
+# Run the CLI in the orchestrator container: just drift analyze npm chalk --from 5.3.0 --to 5.4.0
+[positional-arguments]
+drift *args:
+    @# Not run --build: it prints build progress on stdout, mixed into the CLI's JSON.
+    {{ compose }} build orchestrator >&2
+    {{ compose }} run --rm --no-deps --entrypoint /drift orchestrator "$@"

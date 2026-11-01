@@ -6,9 +6,22 @@ COPY gen/go gen/go
 COPY analyzers/meta-go analyzers/meta-go
 COPY orchestrator orchestrator
 RUN CGO_ENABLED=0 go build -trimpath -ldflags=-s -o /out/drift-server ./orchestrator/cmd/drift-server
+RUN CGO_ENABLED=0 go build -trimpath -ldflags=-s -o /out/drift ./orchestrator/cmd/drift
 
-FROM gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
+# Not distroless like the other services: repo resolution runs git. See docs/DECISIONS.md.
+FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+# The same uid as the distroless services, so that analyzers can read what this image writes.
+# Empty named volumes take their ownership from these directories on first use.
+RUN useradd --uid 65532 --no-create-home --shell /usr/sbin/nologin nonroot \
+    && install -d -o 65532 -g 65532 -m 0750 /artifacts /var/lib/drift
 COPY --from=build /out/drift-server /drift-server
+COPY --from=build /out/drift /drift
 COPY orchestrator/config/analyzers.yaml /etc/drift/analyzers.yaml
 ENV DRIFT_ANALYZERS_CONFIG=/etc/drift/analyzers.yaml
+ENV DRIFT_DATA_DIR=/artifacts
+ENV DRIFT_DB=/var/lib/drift/drift.db
+USER 65532:65532
 ENTRYPOINT ["/drift-server"]

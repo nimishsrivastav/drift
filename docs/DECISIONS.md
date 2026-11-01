@@ -118,3 +118,15 @@ logs the reason. Each version uses the repository URL it declares itself, so a r
 Why: plenty of benign releases have no tag, and static and dynamic analysis can still run without the source. The known gap
 is that a transient network failure looks the same as a missing tag. `meta-go` must not treat `unresolved` as proof that a
 tag is missing when it adds that signal in M7: it should distinguish the two, by re-checking or by a new field.
+
+## 2026-11-01: Only the orchestrator has egress, and its image is Debian slim instead of distroless
+
+The orchestrator joins a second network, `drift-egress`. `drift-internal` stays `internal: true`, and analyzers and the scorer
+are only on that one. The job database has its own volume, so analyzers never see it. Tarballs and checkouts are readable
+by analyzers because every service runs as uid 65532.
+
+Why: the orchestrator needs the registry and the forges, and it is the one component that never parses package contents or
+runs package code. The parsers are the likelier thing to be compromised, so they get no route out. Repo resolution needs git,
+which distroless can't provide, so this image has a shell and a larger attack surface than the others. `drift-egress`
+itself is unrestricted, not limited to the registry and the three forges: the URL checks are in the application, and M5's
+sinkhole work covers sandbox egress, not this.
