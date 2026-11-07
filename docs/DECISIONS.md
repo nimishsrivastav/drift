@@ -67,3 +67,92 @@ upstream artifacts.
 
 The Go module path assumes the GitHub repo is named `drift`. The checkout is not at the `~/drift` that `CLAUDE.md` mentions,
 but it is on the WSL filesystem, which is the part of that rule that matters.
+
+## 2026-11-01: The default "previous version" is by semver, not publish time
+
+With no `--from`, the predecessor is the highest semver below the target that was published before it, skipping
+prereleases when the target is stable. With no such version, the job runs in new-package mode.
+
+Why: publish order compares a backport with an unrelated major line (3.4.2 published after 4.0.0 would diff against
+4.0.0). The publish-time filter stops a later backport to an older line from counting as a predecessor.
+
+## 2026-11-01: Package-named tags win over `vX.Y.Z`, the reverse of the order in PLAN.md
+
+Tags are tried as `name@X.Y.Z`, then the unscoped `name@X.Y.Z` for a scoped package, then `vX.Y.Z`, then `X.Y.Z`.
+
+Why: in a monorepo a bare `v1.2.3` may belong to a different package, and comparing a tarball against the wrong commit
+would produce false tarball-only findings. The extra unscoped form is a common monorepo convention.
+
+## 2026-11-01: Repo resolution shells out to `git`, restricted to HTTPS on three forges
+
+`repository` is attacker-controlled, so URLs are rewritten to `https://` on github.com, gitlab.com or bitbucket.org, and
+anything else stays unresolved. Git runs from an environment built from nothing, with `GIT_ALLOW_PROTOCOL=https`, no
+hooks, submodules, symlinks or host config. Checkouts drop `.git` and live under `<url hash>/<commit>`.
+
+Why: the host allowlist stops a package aiming git at internal addresses, and the protocol restriction stops transport
+helpers such as `ext::`, which run commands. Git itself is more robust against hostile remotes than a library, and these
+options are its documented controls. The cost is that packages hosted elsewhere get no tarball-vs-repo diff, and that the
+orchestrator image needs git. Tags can move, so the commit we actually checked out is what gets recorded.
+
+## 2026-11-01: A tarball is stored as an opaque blob and never unpacked by the orchestrator
+
+Why: parsing archives belongs to Rust (`CLAUDE.md`). `drift analyze` may fetch a malicious version if a registry still
+serves it, and that is safe only because the file stays compressed and read-only (0444) outside any repo checkout. Real
+samples kept for evaluation still follow rule 3.
+
+## 2026-11-01: The job store is SQLite, through the pure-Go `modernc.org/sqlite`
+
+Full messages are stored as protojson, with only the columns we filter on broken out. A sub-job's depth is derived from its
+parent instead of being passed in, and a job has one report, which is never overwritten.
+
+Why: `PLAN.md` allows SQLite or Postgres, and SQLite needs no extra service for a local CLI run. The images build with
+`CGO_ENABLED=0`, which rules out the cgo driver. Deriving depth means it can't disagree with the parent, and a saved verdict
+stays what was reported at the time, so tuning runs create new jobs. Revisit SQLite if watch mode needs several writers
+across hosts.
+
+## 2026-11-01: A repo lookup failure doesn't fail the job, and `unresolved` doesn't say why
+
+A missing or undownloadable tarball fails the job. Any repo error except cancellation records `repo_ref = "unresolved"` and
+logs the reason. Each version uses the repository URL it declares itself, so a repo that moved between versions still resolves.
+
+Why: plenty of benign releases have no tag, and static and dynamic analysis can still run without the source. The known gap
+is that a transient network failure looks the same as a missing tag. `meta-go` must not treat `unresolved` as proof that a
+tag is missing when it adds that signal in M7: it should distinguish the two, by re-checking or by a new field.
+
+## 2026-11-01: Only the orchestrator has egress, and its image is Debian slim instead of distroless
+
+The orchestrator joins a second network, `drift-egress`. `drift-internal` stays `internal: true`, and analyzers and the scorer
+are only on that one. The job database has its own volume, so analyzers never see it. Tarballs and checkouts are readable
+by analyzers because every service runs as uid 65532.
+
+Why: the orchestrator needs the registry and the forges, and it is the one component that never parses package contents or
+runs package code. The parsers are the likelier thing to be compromised, so they get no route out. Repo resolution needs git,
+which distroless can't provide, so this image has a shell and a larger attack surface than the others. `drift-egress`
+itself is unrestricted, not limited to the registry and the three forges: the URL checks are in the application, and M5's
+sinkhole work covers sandbox egress, not this.
+
+## 2026-11-01: Manifest schema additions beyond PLAN.md
+
+`case_type` also has `hard_negative` and `routine`, and hard negatives add `traits` and `rationale`. Hashes are per tarball,
+for the benign version too, and include `sha1`, a `source` and a `note`. `provenance_present` and `sample_available` stay
+the `y`/`n` strings that the plan and handling rules use, and `true`/`false` are rejected.
+
+Why: the plan's `case_type` values only describe positives, and metrics are reported per `case_type`, so negatives need
+values too. Many advisories only state npm's SHA-1 `shasum`. The `source` makes every hash traceable to a citation, and the
+`note` makes a missing hash an explicit statement rather than an oversight. `sample_available: y` requires a hash, because a
+recovered file must be verified against one before use. The validator rejects duplicate keys and non-string versions,
+because PyYAML otherwise keeps the last duplicate and reads `1.10` as the number 1.1, either of which silently corrupts the
+dataset.
+
+## 2026-11-01: Seeded incidents record only what a cited source states
+
+16 npm incidents are seeded, and only axios has `sample_available: y`. Other incidents listed in the DataDog dataset stay `n`
+with a note, because no cited source states their tarball hash. Sources give hashes of files inside the package, not of
+the tarball, and OSV's origin `sha256` values identify source reports. M8 needs another way to get verifiable hashes, for
+example from the dataset's own metadata, before those samples can be used.
+
+`chalk`, `debug` and `rc` are held out: their sources establish that they were malicious but not when the payload runs, and
+`payload_context` is required. `faker` and `@rspack/core` are also not seeded. Add them when a source settles the field.
+
+Hard-negative rationales say only what registry metadata shows, because reading a tarball on the host is not allowed. M3's
+analyzers can confirm the behavior each one implies. Each pair's trait was checked against the metadata of both versions.

@@ -1,0 +1,224 @@
+# Legitimate updates that add scary-looking capabilities. See README.md.
+# Each pair is the first stable release where the trait appears in the registry metadata.
+schema_version: 1
+pairs:
+  - ecosystem: npm
+    package: "esbuild"
+    benign_version: "0.0.0"
+    target_version: "0.0.4"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/esbuild/0.0.4
+      - https://www.npmjs.com/package/esbuild
+    benign_tarball:
+      sha1: 9b5ddd4298b85f01eb2707d175cc07a2bcb4189b
+      sha512: 9851f63508963f3d29e3ca4ff94cf2dfdad3ae7fb15183921410c66d486daa7a737b825a80b0370d2c6bc867a3fe9c3c4e07243dc13a7e3864fbc3bd3c15fc4c
+      source: https://registry.npmjs.org/esbuild/0.0.0
+    target_tarball:
+      sha1: dd2f4010ffc74b113228c1dd6172da4ab25ac436
+      sha512: 419afae0091c3b62b44edf3a6fb680c6821474613c79bb2623979b00f77d9871b54455778c25e9c830deced1f2c0cd5289c705fe6d3084ad16adbefdadb565b6
+      source: https://registry.npmjs.org/esbuild/0.0.4
+    sample_available: y
+    traits: [binary_downloader]
+    rationale: "First release with a postinstall script, install.js, for a package built around a native executable."
+  - ecosystem: npm
+    package: "puppeteer"
+    benign_version: "0.0.0"
+    target_version: "0.9.0"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/puppeteer/0.9.0
+      - https://www.npmjs.com/package/puppeteer
+    benign_tarball:
+      sha1: c71ff3ced0cf60fc7d9faa4d66e9c5e8c3a2a12a
+      sha512: 444ae76c4daac76022a8fe9bf024db605340756953b576471acf0328ebadd912793db2e338bc55107f1a416dadc732f413c03b7a61fa2a3cc80dc4aa02a7fdb7
+      source: https://registry.npmjs.org/puppeteer/0.0.0
+    target_tarball:
+      sha1: d65997ff83e24eb569e5577d2f75695dcbe5be4a
+      sha512: c2599894b210b324989f1150c574cca75002079a0cc8723acb6a4227862856aca9d149a5dd3f874bae231a29b1383df1f774f71be14cdc92379c19870a8bcd80
+      source: https://registry.npmjs.org/puppeteer/0.9.0
+    sample_available: y
+    traits: [binary_downloader]
+    rationale: "First real release after a placeholder. Adds an install script plus the extract-zip and progress dependencies, for a package that drives a browser."
+  - ecosystem: npm
+    package: "playwright"
+    benign_version: "0.9.3"
+    target_version: "0.9.4"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/playwright/0.9.4
+      - https://www.npmjs.com/package/playwright
+    benign_tarball:
+      sha1: f41d5bebd6781bbfc33f292c60d14000edda9345
+      sha512: 5efec9587f3f797ca454cba1b1893089e8df018ada792ac398198bac631e97eaaf425946a95a1a49d4200390175c2067a7197a13206a1983426fd98d3ec9a7a0
+      source: https://registry.npmjs.org/playwright/0.9.3
+    target_tarball:
+      sha1: 4919b622cc12100928d96c89b9e02e255a6d0f2d
+      sha512: fd7ba6cdabcf736c428cff57ec705be2ee3c61b6adeca4be2b31f2fbf779998cf40c92eb2f0fffff257ddf1d2a09345e1231cadd6032c35b48b393b701b486dd
+      source: https://registry.npmjs.org/playwright/0.9.4
+    sample_available: y
+    traits: [binary_downloader]
+    rationale: "Adds an install script, install.js, for a package that drives browsers."
+  - ecosystem: npm
+    package: "sharp"
+    benign_version: "0.32.6"
+    target_version: "0.33.0"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/sharp/0.33.0
+      - https://www.npmjs.com/package/sharp
+    benign_tarball:
+      sha1: 6ad30c0b7cd910df65d5f355f774aa4fce45732a
+      sha512: 2b22d35b081c47d39ee1df47c02c0d33697bf89d1d510c27ff27fb4b41274ed6f47954b84713b47944afc4fb734f8177498f82e0ae9fa9dbff0cedbbb09fefff
+      source: https://registry.npmjs.org/sharp/0.32.6
+    target_tarball:
+      sha1: 95f77cda3684522e210ab55a167dad6cb5fbfe4f
+      sha512: f7d0d92ae7639bf466cfe334ff6eade032a95f2cb000e25a6b2192f5ba049fb16f82d1b4458062e3ab8f13673ea1b70946d0370196b4430268b7ade0250d45d1
+      source: https://registry.npmjs.org/sharp/0.33.0
+    sample_available: y
+    traits: [native_build, big_refactor]
+    rationale: "Adds 18 platform-specific optional dependencies, for a package built around a native image library."
+  - ecosystem: npm
+    package: "rollup"
+    benign_version: "3.29.4"
+    target_version: "4.0.0"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/rollup/4.0.0
+      - https://www.npmjs.com/package/rollup
+    benign_tarball:
+      sha1: 4d70c0f9834146df8705bfb69a9a19c9e1109981
+      sha512: a16ce6059c2f62b5348891ed0e686c9baeb6ac2d791515e67230a4d710fbef57450f1e63274dae7c04104e7d1eb41d9e98d93827d11983fc962a9b27f4158647
+      source: https://registry.npmjs.org/rollup/3.29.4
+    target_tarball:
+      sha1: 04c79d61f5308f11c85b22299e430eee10d7cfb2
+      sha512: 76d964a08769fe0da09559506fa17384c00cce131854827728b1a38562a4c33fda99b12e1de559ec483a1802e11d93ac0d10fe6564a39d48a46573f26f6da9b9
+      source: https://registry.npmjs.org/rollup/4.0.0
+    sample_available: y
+    traits: [native_build, big_refactor]
+    rationale: "Major release that adds platform-specific optional dependencies, which is how it now ships native code."
+  - ecosystem: npm
+    package: "bcrypt"
+    benign_version: "0.5.0"
+    target_version: "0.6.0"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/bcrypt/0.6.0
+      - https://www.npmjs.com/package/bcrypt
+    benign_tarball:
+      sha1: 612e01afa125c7332310f94e5186425c482b55f8
+      sha512: 8b719206d0e2d0c869d7a3dda8c7b07b648544c32819594ed58107b7029cdca9d53d7acb09fd666c188428a72e6792aed9c546b65f8a288c290bf2eb7ed870fe
+      source: https://registry.npmjs.org/bcrypt/0.5.0
+    target_tarball:
+      sha1: 3f49d8c78c0887c1b420f07e4abe6e7a03874c81
+      sha512: ad4cda8b75e1c04bd597c65a8012e8da5798d7c99818bb121984cfa00e69bb8185c048eaea531aa28552cd69c423061ff6fef4b5e680d45e336796839843adb7
+      source: https://registry.npmjs.org/bcrypt/0.6.0
+    sample_available: y
+    traits: [native_build]
+    rationale: "Adds a node-gyp rebuild install script, the ordinary way a native addon compiles on install."
+  - ecosystem: npm
+    package: "husky"
+    benign_version: "5.1.1"
+    target_version: "5.1.2"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/husky/5.1.2
+      - https://www.npmjs.com/package/husky
+    benign_tarball:
+      sha1: 8678953fd8deb86f387cbf1ad50bb2f7f96e83f2
+      sha512: f342d9ef7e95d0daf8fecb7473608e61a31b11084736601b2cc37c27f90b93bfe6a3441d5245063438efffb8d5921ba0dfbed687cc1f6d6c9a557109fe1d81fd
+      source: https://registry.npmjs.org/husky/5.1.1
+    target_tarball:
+      sha1: dc6a1f68640455d8d98c28875e073087f86c5081
+      sha512: 96295a4587835dc00e8fc0ee46737d23153210c55b620f6b2bbc953643c1e55e210afc48531a4c7a2bfd2b687bec21341f38c29e4d41af4a167b52208579e00d
+      source: https://registry.npmjs.org/husky/5.1.2
+    sample_available: y
+    traits: [prepare_hook]
+    rationale: "Adds a prepare script. npm doesn't run prepare when a package is installed from the registry."
+  - ecosystem: npm
+    package: "gatsby"
+    benign_version: "2.2.13"
+    target_version: "2.3.0"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/gatsby/2.3.0
+      - https://www.npmjs.com/package/gatsby
+    benign_tarball:
+      sha1: 67237199e4498bccad239a83fe1464387f6c6034
+      sha512: 03d98b8c8f5feb6191dc79c82edd04b7043fda573e7a667ae5c782382cf8a05c505636b56cddc460d3c31d55ee96d0403edb469f4ba49d9adec86d2a3af7943c
+      source: https://registry.npmjs.org/gatsby/2.2.13
+    target_tarball:
+      sha1: 7c4d19333bc1c1fc621c178da46d598195444c71
+      sha512: 0ff95fd9e11b7fafd2c0969e6ac4cafcebf99f66b0dc2f9cf795d706643f36917c6f958f41b08e7249458b9e467943cfab7f5baf000e49b4b8644390b2cbbe99
+      source: https://registry.npmjs.org/gatsby/2.3.0
+    sample_available: y
+    traits: [telemetry]
+    rationale: "Adds the project's own gatsby-telemetry package as a dependency."
+  - ecosystem: npm
+    package: "package-json"
+    benign_version: "2.3.3"
+    target_version: "2.4.0"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/package-json/2.4.0
+      - https://www.npmjs.com/package/package-json
+    benign_tarball:
+      sha1: 14895311a963d18edf8801e06b67ea87795d15b9
+      sha512: 003308be9108005303c890d1f1c1a92522af58b9edd0b1c03a35d2887d72cbf9bc19c01085231d88c409c3b86d1db1cd287f68c80a2f6118de65a9792abf67de
+      source: https://registry.npmjs.org/package-json/2.3.3
+    target_tarball:
+      sha1: 0d15bd67d1cbbddbb2ca222ff2edb86bcb31a8bb
+      sha512: 3d183ae625cc4edfee2bc45f879cefce451b7c03e2b45d7b61a098f886c7b18824b222efb735964d48a5747b61de655a67bf3bd4e27b82d3f82c144196601d5e
+      source: https://registry.npmjs.org/package-json/2.4.0
+    sample_available: y
+    traits: [npmrc_reader]
+    rationale: "Adds registry-auth-token, a package for reading registry credentials from .npmrc, so that private registries work."
+  - ecosystem: npm
+    package: "uuid"
+    benign_version: "3.4.0"
+    target_version: "7.0.0"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/uuid/7.0.0
+      - https://www.npmjs.com/package/uuid
+    benign_tarball:
+      sha1: b23e4358afa8a202fe7a100af1f5f883f02007ee
+      sha512: 1e3483470ea0644e4932081cb4705c8d56a4d3cf8a1158522220f31674fd4bd69e826a7ce52fdb45e0554dbe104c5691369b49f64b9868d8676cd10e91b29bfc
+      source: https://registry.npmjs.org/uuid/3.4.0
+    target_tarball:
+      sha1: 1833d4b9ce50b732bfaa271f9cb74e974d303c79
+      sha512: 2cd52b36c5dd23f7d4b32a496d633c26de03810745019878d69f42ed613d0a7f8250b3849281b69604321faf2fdf09c8cb92b77cde23752b76ef42ba20503731
+      source: https://registry.npmjs.org/uuid/7.0.0
+    sample_available: y
+    traits: [bundled_output, big_refactor]
+    rationale: "Major release whose main entry moves to built output under dist/."
+  - ecosystem: npm
+    package: "vite"
+    benign_version: "0.16.6"
+    target_version: "0.16.7"
+    case_type: hard_negative
+    provenance_present: n
+    source_urls:
+      - https://registry.npmjs.org/vite/0.16.7
+      - https://www.npmjs.com/package/vite
+    benign_tarball:
+      sha1: 8d6a4bea65b902dad39520641887e827e1579715
+      sha512: 0151d99fe2ff04dc23b11a2c1fa95c9b0dda7a2a594def6e0d7b692761e31087b42eb956beab25c95351583ebf9843c59132b4e1ac5748c0700866c2ba958175
+      source: https://registry.npmjs.org/vite/0.16.6
+    target_tarball:
+      sha1: 0444516406e70b0b540f66e6b3e5e7e76cd151cc
+      sha512: 8222d9de53983760f8be9f6c87bd8617c25ce4d79810ebd79475d02a3d7ee64b01bc577456553a430376561f0150147b35d55db1404c23c89426e5b54266bbff
+      source: https://registry.npmjs.org/vite/0.16.7
+    sample_available: y
+    traits: [env_config]
+    rationale: "Adds dotenv, a package for loading .env files into the environment."

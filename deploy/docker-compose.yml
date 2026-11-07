@@ -13,8 +13,13 @@ services:
     build:
       context: ..
       dockerfile: orchestrator/Dockerfile
+    # The only service with a route out. It downloads and never runs package code.
+    networks: [drift-internal, drift-egress]
+    tmpfs: [/tmp]
     volumes:
       - artifacts:/artifacts
+      # Separate from artifacts, so that analyzers never see the job database.
+      - state:/var/lib/drift
     depends_on: [meta-go, static-rs, trace-rs, scorer]
 
   meta-go:
@@ -48,9 +53,12 @@ services:
       dockerfile: scorer/Dockerfile
 
 networks:
-  # No route out and no published ports. M2 gives the orchestrator its own registry egress.
+  # No route out and no published ports. Analyzers and the scorer are only on this one.
   drift-internal:
     internal: true
+  # Registry and forge access for the orchestrator.
+  drift-egress:
 
 volumes:
   artifacts:
+  state:

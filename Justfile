@@ -61,7 +61,11 @@ lint-rust:
 lint-python:
     uv run --all-packages --locked ruff check .
     uv run --all-packages --locked ruff format --check .
-    uv run --all-packages --locked mypy scorer/src
+    uv run --all-packages --locked mypy scorer/src eval/src
+
+# Check every evaluation manifest. `just test` does this too, through pytest.
+validate-manifests:
+    uv run --all-packages --locked python -m drift_eval.manifest eval/manifests
 
 lint-workflows:
     actionlint
@@ -77,3 +81,10 @@ down:
 
 logs service="orchestrator":
     {{ compose }} logs {{ service }}
+
+# Run the CLI in the orchestrator container: just drift analyze npm chalk --from 5.3.0 --to 5.4.0
+[positional-arguments]
+drift *args:
+    @# Not run --build: it prints build progress on stdout, mixed into the CLI's JSON.
+    {{ compose }} build orchestrator >&2
+    {{ compose }} run --rm --no-deps --entrypoint /drift orchestrator "$@"

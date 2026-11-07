@@ -1,0 +1,320 @@
+# Real malicious updates of legitimate packages, each paired with its last benign version.
+# Metadata and hashes only. See README.md and .claude/rules/samples.md.
+#
+# provenance_present is n for anything before npm provenance launched on 2023-04-19
+# (https://github.blog/security/supply-chain-security/introducing-npm-package-provenance/),
+# unset where no source establishes it, and otherwise as the cited sources state.
+# incident_date is the malicious version's registry publish date unless a note says otherwise.
+# DataDog dataset manifest checked: https://github.com/DataDog/malicious-software-packages-dataset
+schema_version: 1
+pairs:
+  - ecosystem: npm
+    package: "event-stream"
+    benign_version: "3.3.5"
+    target_version: "3.3.6"
+    case_type: dependency_injection
+    payload_context: import
+    techniques: [wallet]
+    provenance_present: n
+    incident_date: 2018-09-09
+    source_urls:
+      - https://github.com/advisories/GHSA-mh6f-8j2x-4483
+      - https://github.com/dominictarr/event-stream/issues/116
+    benign_tarball:
+      sha1: e5dd8989543630d94c6cf4d657120341fa31636b
+      sha512: bf289b0dcbb924bdb431ed5f3fbdf84011ff91e9c118b65aa769f4f975ccee6bee50fcc9db461daa3d5a29c21e31dae2d69f8f53ee3200aba08cdf0a095b2dfa
+      source: https://registry.npmjs.org/event-stream/3.3.5
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "The advisory names 3.3.4 as the last non-malicious version but flags only 3.3.6, so 3.3.5 is used as the immediate predecessor."
+  - ecosystem: npm
+    package: "flatmap-stream"
+    target_version: "0.1.1"
+    case_type: new_malicious_package
+    payload_context: import
+    techniques: [wallet]
+    provenance_present: n
+    incident_date: 2018-11-26
+    source_urls:
+      - https://github.com/advisories/GHSA-9x64-5r7x-2q53
+      - https://github.com/advisories/GHSA-mh6f-8j2x-4483
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "The dependency injected into event-stream. The package is gone from the registry, so the date is the advisory's."
+  - ecosystem: npm
+    package: "eslint-scope"
+    benign_version: "3.7.1"
+    target_version: "3.7.2"
+    case_type: update_compromise
+    payload_context: install
+    techniques: [exfil]
+    provenance_present: n
+    incident_date: 2018-07-12
+    source_urls:
+      - https://eslint.org/blog/2018/07/postmortem-for-malicious-package-publishes
+      - https://github.com/advisories/GHSA-hxxf-q3w9-4xgw
+    benign_tarball:
+      sha1: 3d63c3edfda02e06e01a452ad88caacc7cdcb6e8
+      sha512: 8afa5bb6952083d4894b84cb8caeca75c0e1a9cfc4dc2188b6cbd06c134b90d19478c85de6a9c972bc9b6bf6eb1124be760defacba8fb9cfd4712ee344974de4
+      source: https://registry.npmjs.org/eslint-scope/3.7.1
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+  - ecosystem: npm
+    package: "ua-parser-js"
+    benign_version: "0.7.28"
+    target_version: "0.7.29"
+    case_type: update_compromise
+    payload_context: install
+    techniques: [dropper, exfil, miner]
+    provenance_present: n
+    incident_date: 2021-10-22
+    source_urls:
+      - https://github.com/advisories/GHSA-pjwm-rvh2-c87w
+      - https://cert.europa.eu/publications/security-advisories/2021-057/pdf
+      - https://github.com/faisalman/ua-parser-js/issues/536
+    benign_tarball:
+      sha1: 8ba04e653f35ce210239c64661685bf9121dec31
+      sha512: e86bab7359fffe08e9f5e40d5e30fd3b733fb0cc15b4de52f0bbfd6ef39805f29f0cd888221aa2ca2d35bcc04ee39bb8ce40c4e36d30fded2c7bb56cfac220fa
+      source: https://registry.npmjs.org/ua-parser-js/0.7.28
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+  - ecosystem: npm
+    package: "coa"
+    benign_version: "2.0.2"
+    target_version: "2.0.4"
+    case_type: update_compromise
+    payload_context: install
+    techniques: [dropper, exfil]
+    provenance_present: n
+    incident_date: 2021-11-04
+    source_urls:
+      - https://github.com/advisories/GHSA-73qr-pfmq-6rp8
+      - https://www.bleepingcomputer.com/news/security/popular-coa-npm-library-hijacked-to-steal-user-passwords/
+    benign_tarball:
+      sha1: 43f6c21151b4ef2bf57187db0d73de229e3e7ec3
+      sha512: ab9fe31be6109d2cb89d14d5e05ee53dea41259f2a04d2490c1b897687a30f22d78262fb204a3e2ded890d9b9d15316dee6ac2a8845a4a3c2ce328110930805c
+      source: https://registry.npmjs.org/coa/2.0.2
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "2.0.3 also has the preinstall hook, but BleepingComputer reports the script it runs first ships in 2.0.4, so 2.0.4 is the target."
+  - ecosystem: npm
+    package: "colors"
+    benign_version: "1.4.0"
+    target_version: "1.4.1"
+    case_type: destructive
+    payload_context: import
+    techniques: []
+    provenance_present: n
+    incident_date: 2022-01-08
+    source_urls:
+      - https://github.com/advisories/GHSA-5rqg-jm4f-cqx7
+      - https://snyk.io/blog/open-source-npm-packages-colors-faker/
+    benign_tarball:
+      sha1: c50491479d4c1bdaed2c9ced32cf7c7dc2360f78
+      sha512: 6be52a4e1e2481983f4a51af7dbcc31e9811bbb00040e9a6a911c99f185164808a1544fdd5bad584d36de7c08c594f4fb016efdcf0c26541db571b83887da6b4
+      source: https://registry.npmjs.org/colors/1.4.0
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "Sabotage by the package's own author: an infinite loop that runs when the package initializes. Advisories give 7 to 9 January; the date is the registry's publish time."
+  - ecosystem: npm
+    package: "node-ipc"
+    benign_version: "10.1.0"
+    target_version: "10.1.1"
+    case_type: destructive
+    payload_context: import
+    techniques: []
+    provenance_present: n
+    incident_date: 2022-03-07
+    source_urls:
+      - https://github.com/advisories/GHSA-97m3-w2cp-4xx6
+      - https://snyk.io/blog/peacenotwar-malicious-npm-node-ipc-package-vulnerability/
+    benign_tarball:
+      sha1: 6ebd1ce11afe31bb5e24edf8e3cadf4a1513c270
+      sha512: 2411d194c53cc40a28d643ed72f94101affa3818bf1546683bf35b65feb7ab915ef2ad9a0e154916bc81152ab94f713b10cd77367014c84624d5bd0817a415dd
+      source: https://registry.npmjs.org/node-ipc/10.1.0
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "Geotargeted file overwrite in module-level code, per the diff Snyk shows. The advisory was published on 2022-03-16; the date is the registry's publish time."
+  - ecosystem: npm
+    package: "@solana/web3.js"
+    benign_version: "1.95.5"
+    target_version: "1.95.6"
+    case_type: update_compromise
+    payload_context: call
+    techniques: [exfil]
+    incident_date: 2024-12-03
+    source_urls:
+      - https://github.com/advisories/GHSA-jcxm-7wvp-g6p5
+      - https://osv.dev/vulnerability/MAL-2024-11183
+      - https://socket.dev/blog/supply-chain-attack-solana-web3-js-library
+    benign_tarball:
+      sha1: ba70da4c205c64249ed94369fe2d617c0347cd85
+      sha512: 854f5c06b6e0d73ea01232c7f6fc08724181541efc2239b489914d938a1c9b9383f36a623f0ba4dcc790d6b7e2283f5842dafde64aeb71aa296f8f4499026546
+      source: https://registry.npmjs.org/@solana/web3.js/1.95.5
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "Exfiltration injected into code paths that use private keys. 1.95.7 is also malicious, and is the version listed in the DataDog dataset manifest, with no cited tarball hash."
+  - ecosystem: npm
+    package: "@ctrl/tinycolor"
+    benign_version: "4.1.0"
+    target_version: "4.1.1"
+    case_type: update_compromise
+    payload_context: install
+    techniques: [exfil, worm]
+    incident_date: 2025-09-15
+    source_urls:
+      - https://osv.dev/vulnerability/MAL-2025-47141
+      - https://www.wiz.io/blog/shai-hulud-npm-supply-chain-attack
+    benign_tarball:
+      sha1: 91a8f8120ffc9da2feb2a38f7862b300d5e9691a
+      sha512: 5b23b1f1c250f8542eb38326e2e3c8640eb881b9375b1874b28e4b7228b468989fab0a153a57c5b68ae32c4d077a7e0e6321d93170d6a8c99a41e981860c4545
+      source: https://registry.npmjs.org/@ctrl/tinycolor/4.1.0
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "Listed in the DataDog dataset manifest, but with no cited tarball hash to verify it against."
+  - ecosystem: npm
+    package: "eslint-config-prettier"
+    benign_version: "8.10.0"
+    target_version: "8.10.1"
+    case_type: update_compromise
+    payload_context: install
+    techniques: [dropper]
+    incident_date: 2025-07-18
+    source_urls:
+      - https://github.com/advisories/GHSA-f29h-pxvx-f335
+      - https://osv.dev/vulnerability/MAL-2025-6022
+      - https://www.bleepingcomputer.com/news/security/popular-npm-linter-packages-hijacked-via-phishing-to-drop-malware/
+    benign_tarball:
+      sha1: 3a06a662130807e2502fc3ff8b4143d8a0658e11
+      sha512: 48cf0030975e42a4584fd3bdce0ba2aee41968defecfe1387803fda222cd18a32da26c1a07513d75c8140fa6409ff79001be765126ef7b36e29637d95216c972
+      source: https://registry.npmjs.org/eslint-config-prettier/8.10.0
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "Listed in the DataDog dataset manifest, but with no cited tarball hash to verify it against."
+  - ecosystem: npm
+    package: "nx"
+    benign_version: "21.4.1"
+    target_version: "21.5.0"
+    case_type: ci_pipeline
+    payload_context: install
+    techniques: [exfil]
+    incident_date: 2025-08-26
+    source_urls:
+      - https://github.com/nrwl/nx/security/advisories/GHSA-cxm3-wv7p-598c
+      - https://osv.dev/vulnerability/MAL-2025-41443
+    benign_tarball:
+      sha1: 4649405ac2a3c69a22352c0423521051e0af5422
+      sha512: 9c3f0d8c9198939c1caa2013ce5b0b6aebf2ad21d5d92d9898cd870482aa4d3c153f6b1ecb4ecc177c0307d536070c488dba1a86221343aa5fa85801efd4c5d8
+      source: https://registry.npmjs.org/nx/21.4.1
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "Publish token stolen through a workflow injection. Listed in the DataDog dataset manifest, but with no cited tarball hash to verify it against."
+  - ecosystem: npm
+    package: "axios"
+    benign_version: "1.14.0"
+    target_version: "1.14.1"
+    case_type: dependency_injection
+    payload_context: install
+    techniques: [dropper]
+    provenance_present: n
+    incident_date: 2026-03-31
+    source_urls:
+      - https://www.stepsecurity.io/blog/axios-compromised-on-npm-malicious-versions-drop-remote-access-trojan
+      - https://osv.dev/vulnerability/MAL-2026-2307
+    benign_tarball:
+      sha1: 7c29f4cf2ea91ef05018d5aa5399bf23ed3120eb
+      sha512: dd8f32aea2d2c23bb3a57b99d2821867f5c680bc14201537b8bbdb7296f4a62743f5cb694a125de3729294412455083a0d2d06f4d2b2ccebc17d4b43284c87bd
+      source: https://registry.npmjs.org/axios/1.14.0
+    target_tarball:
+      sha1: 2553649f2322049666871cea80a5d0d6adc700ca
+      source: https://www.stepsecurity.io/blog/axios-compromised-on-npm-malicious-versions-drop-remote-access-trojan
+    sample_available: y
+    notes: "The payload is in the injected plain-crypto-js. Listed in the DataDog dataset manifest. The source's shasum for the safe 1.14.0 matches the registry."
+  - ecosystem: npm
+    package: "plain-crypto-js"
+    target_version: "4.2.1"
+    case_type: new_malicious_package
+    payload_context: install
+    techniques: [dropper]
+    incident_date: 2026-03-30
+    source_urls:
+      - https://www.stepsecurity.io/blog/axios-compromised-on-npm-malicious-versions-drop-remote-access-trojan
+      - https://osv.dev/vulnerability/MAL-2026-2306
+    target_tarball:
+      sha1: 07d889e2dadce6f3910dcbc253317d28ca61c766
+      source: https://www.stepsecurity.io/blog/axios-compromised-on-npm-malicious-versions-drop-remote-access-trojan
+    sample_available: n
+    notes: "The dependency injected into axios. Not in the DataDog dataset manifest."
+  - ecosystem: npm
+    package: "@tanstack/react-router"
+    benign_version: "1.169.2"
+    target_version: "1.169.5"
+    case_type: ci_pipeline
+    payload_context: install
+    techniques: [exfil, worm]
+    provenance_present: y
+    incident_date: 2026-05-11
+    source_urls:
+      - https://github.com/advisories/GHSA-g7cv-rxg3-hmpx
+      - https://tanstack.com/blog/npm-supply-chain-compromise-postmortem
+      - https://www.endorlabs.com/learn/shai-hulud-compromises-the-tanstack-ecosystem-80-packages-compromised
+      - https://infosecurity-magazine.com/news/mini-shai-hulud-tanstack-npm
+    benign_tarball:
+      sha1: 9590a308fa3a7369f0db7b4d6c39e64167671781
+      sha512: 38933b2a0b9cec4467c1e68d456b325a020a725df3db7ac3d41e236b18f377d446767ce9b761dfad66bdae081b4f41dfce17e8e03d999ac7e84e67b4df9b6789
+      source: https://registry.npmjs.org/@tanstack/react-router/1.169.2
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "Runs through a malicious optional dependency's prepare script, published by the real release pipeline. Listed in the DataDog dataset manifest, but with no cited tarball hash to verify it against."
+  - ecosystem: npm
+    package: "keyv"
+    benign_version: "5.6.0"
+    target_version: "6.0.0"
+    case_type: ci_pipeline
+    payload_context: install
+    techniques: [exfil, worm]
+    provenance_present: y
+    incident_date: 2026-08-04
+    source_urls:
+      - https://osv.dev/vulnerability/MAL-2026-11524
+      - https://www.chainguard.dev/unchained/the-keyv-and-cacheable-npm-supply-chain-attack-inside-the-mini-shai-hulud-campaign
+    benign_tarball:
+      sha1: 03044074c6b4d072d0a62c7b9fa649537baf0105
+      sha512: 0980c3dd23adb07b725de10e458471daa06da432458d14c65d4b66344306cb360e2a3d53137b7271d961a3b900d547f1f4e616673839d901411802d38abcc34b
+      source: https://registry.npmjs.org/keyv/5.6.0
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "A compromised maintainer pushed to the repo and cut the release through GitHub Actions, so it carries provenance. Listed in the DataDog dataset manifest, but with no cited tarball hash to verify it against."
+  - ecosystem: npm
+    package: "jscrambler"
+    benign_version: "8.13.0"
+    target_version: "8.14.0"
+    case_type: update_compromise
+    payload_context: install
+    techniques: [dropper]
+    incident_date: 2026-07-11
+    source_urls:
+      - https://osv.dev/vulnerability/MAL-2026-10187
+      - https://thehackernews.com/2026/07/compromised-jscrambler-8140-npm-release.html
+      - https://www.reflectiz.com/blog/jscrambler-npm-package-compromise/
+    benign_tarball:
+      sha1: c04ef6be0ea79a1660681faf2ce0dfb57b596b5f
+      sha512: dae01a1e773ce4ce12b76fcf22eb97990d4e6d7cf3387494debdb83a00ff8e4470244054d6e5f449717633eddfd353778b45ae7f3b33467ef00c9c5942fc0733
+      source: https://registry.npmjs.org/jscrambler/8.13.0
+    target_tarball:
+      note: "No cited source states a hash of this tarball. Published vendor hashes cover files inside the package."
+    sample_available: n
+    notes: "Sources disagree on provenance and on whether the release used the normal pipeline, so it is unset. One says the versions were only deprecated, but the registry no longer lists 8.14.0. Listed in the DataDog dataset manifest, but with no cited tarball hash to verify it against."

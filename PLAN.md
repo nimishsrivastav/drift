@@ -292,12 +292,12 @@ a test PR that breaks a lint check is blocked from merging. `claude doctor` repo
 blocks `cat eval/data/samples/test.zip` and allows the `docker run --runtime=runsc` form (shown with a test).
 
 ### M2 — Ingest + dataset bootstrap (week 2)
-- [ ] npm ingest: packument fetch, version resolution, tarball download, integrity check, content-addressed store
-- [ ] Repo resolution + shallow clone at matching tag
-- [ ] `drift analyze npm <pkg> --from X --to Y` creates a job and stores the `ArtifactPair`
-- [ ] Job store schema (jobs incl. `parent_job_id`/`depth`, findings, reports)
-- [ ] Manifest schema + validator (`eval/src/drift_eval/manifest.py`) with the fields from §3 eval
-- [ ] Seed `positives.yaml` with ≥10 npm incidents across different case types (metadata + hashes), `routine.yaml` with 50 benign pairs, `hard_negatives.yaml` with 10
+- [x] npm ingest: packument fetch, version resolution, tarball download, integrity check, content-addressed store
+- [x] Repo resolution + shallow clone at matching tag
+- [x] `drift analyze npm <pkg> --from X --to Y` creates a job and stores the `ArtifactPair`
+- [x] Job store schema (jobs incl. `parent_job_id`/`depth`, findings, reports)
+- [x] Manifest schema + validator (`eval/src/drift_eval/manifest.py`) with the fields from §3 eval
+- [x] Seed `positives.yaml` with ≥10 npm incidents across different case types (metadata + hashes), `routine.yaml` with 50 benign pairs, `hard_negatives.yaml` with 10
 
 **Acceptance**: the CLI fetches both tarballs and the repo ref for 5 benign packages; all manifests validate;
 no sample is ever extracted on the host.
