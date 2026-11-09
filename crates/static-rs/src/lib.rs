@@ -4,6 +4,7 @@
 //! diff. Capability extraction and the dependency diff arrive in M4.
 
 pub mod artifact;
+pub mod depgraph;
 pub mod findings;
 pub mod npm_manifest;
 pub mod tarball_vs_repo;
@@ -96,6 +97,12 @@ fn run(pair: &ArtifactPair, config: &Config, collector: &mut Collector) {
         old_hooks.as_ref(),
         &new_hooks,
         new_manifest.as_ref(),
+        collector,
+    );
+    depgraph::diff(
+        old_manifest.as_ref(),
+        new_manifest.as_ref(),
+        pair.old.is_none(),
         collector,
     );
     let install_files = npm_manifest::referenced_files(&new_hooks, &new_tree);
