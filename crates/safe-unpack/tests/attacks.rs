@@ -9,7 +9,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 use safe_unpack::{
-    EntryKind, Error, Format, Limits, MemSink, PathError, unpack_file, unpack_to_sink,
+    EntryKind, Error, Format, Limits, MemSink, PathError, Sink, unpack_file, unpack_to_sink,
+    unpack_to_sink_as,
 };
 
 fn attack_dir() -> PathBuf {
@@ -328,4 +329,114 @@ fn failed_extraction_leaves_nothing_behind() {
         assert!(left.is_empty(), "{name} left {left:?}");
     }
     assert!(!Path::new("/tmp/drift-safe-unpack-evil.txt").exists());
+}
+
+#[test]
+fn data_after_one_zero_block_is_rejected() {
+    let err = reject("tar_zero_block_smuggle.tgz");
+    assert!(
+        matches!(err, Error::Malformed(ref m) if m.contains("after the end-of-archive")),
+        "{err:?}"
+    );
+}
+
+#[test]
+fn non_canonical_paths_are_rejected() {
+    for name in ["tar_dot_prefix.tgz", "tar_empty_component.tgz"] {
+        let err = reject(name);
+        assert!(
+            matches!(
+                err,
+                Error::BadPath {
+                    reason: PathError::NotCanonical,
+                    ..
+                }
+            ),
+            "{name}: {err:?}"
+        );
+    }
+    let err = reject("tar_file_with_trailing_slash.tgz");
+    assert!(
+        matches!(
+            err,
+            Error::BadPath {
+                reason: PathError::TrailingSlash,
+                ..
+            }
+        ),
+        "{err:?}"
+    );
+}
+
+#[test]
+fn competing_extension_headers_are_rejected() {
+    assert!(matches!(
+        reject("tar_pax_and_long_name.tgz"),
+        Error::Malformed(_)
+    ));
+}
+
+#[test]
+fn ambiguous_zips_are_rejected() {
+    for name in ["zip_trailing_data.zip", "zip_two_eocd.zip"] {
+        let err = reject(name);
+        assert!(matches!(err, Error::Malformed(_)), "{name}: {err:?}");
+    }
+}
+
+#[test]
+fn callers_can_require_a_format() {
+    // npm reads every tarball as tar, so a file that parses as a zip must not be analyzed as one.
+    let tar_only = [Format::TarGz, Format::Tar];
+    let mut sink = MemSink::default();
+    let err = unpack_to_sink_as(
+        Cursor::new(load("benign.zip")),
+        &Limits::default(),
+        &mut sink,
+        &tar_only,
+    )
+    .unwrap_err();
+    assert!(
+        matches!(
+            err,
+            Error::UnexpectedFormat {
+                found: Format::Zip,
+                ..
+            }
+        ),
+        "{err:?}"
+    );
+    assert!(sink.files.is_empty());
+    let sink: &mut dyn Sink = &mut MemSink::default();
+    assert!(
+        unpack_to_sink_as(
+            Cursor::new(load("benign.tgz")),
+            &Limits::default(),
+            sink,
+            &tar_only
+        )
+        .is_ok()
+    );
+}
+
+#[test]
+fn path_memory_is_bounded() {
+    let small = Limits {
+        max_path_bytes_total: 256,
+        ..Limits::default()
+    };
+    assert!(matches!(
+        reject_with("tar_many_entries.tgz", &small),
+        Error::PathBytesExceeded { limit: 256 }
+    ));
+}
+
+#[test]
+fn errors_never_carry_raw_control_characters() {
+    for (name, _) in support::all() {
+        if let Err(err) = unpack(name, &Limits::default()) {
+            let shown = err.to_string();
+            assert!(!shown.chars().any(char::is_control), "{name}: {shown:?}");
+        }
+    }
 }

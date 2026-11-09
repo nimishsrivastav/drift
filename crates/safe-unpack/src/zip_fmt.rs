@@ -88,23 +88,32 @@ fn precheck<R: Read + Seek>(input: &mut R, size: u64, limits: &Limits) -> Result
     let mut tail = vec![0u8; tail_len as usize];
     input.read_exact(&mut tail).map_err(Error::Io)?;
 
+    // Exactly one end record, ending exactly at the end of the file: readers pick among several
+    // differently, and bytes after the record are data only some readers see.
     let candidates: Vec<usize> = (0..=tail.len() - EOCD_LEN as usize)
-        .rev()
         .filter(|&i| &tail[i..i + 4] == EOCD_SIG)
         .collect();
-    let exact = candidates.iter().copied().find(|&i| {
-        let comment = u16::from_le_bytes([tail[i + 20], tail[i + 21]]) as usize;
-        i + EOCD_LEN as usize + comment == tail.len()
-    });
-    let at = exact
-        .or(candidates.first().copied())
-        .ok_or_else(|| Error::Malformed("no end of central directory".into()))?;
+    let [at] = candidates[..] else {
+        return Err(Error::Malformed(format!(
+            "{} end-of-central-directory records",
+            candidates.len()
+        )));
+    };
+    let comment = u16::from_le_bytes([tail[at + 20], tail[at + 21]]) as usize;
+    if at + EOCD_LEN as usize + comment != tail.len() {
+        return Err(Error::Malformed("data after the end of the zip".into()));
+    }
+    if tail.windows(4).any(|w| w == ZIP64_LOCATOR_SIG) {
+        return Err(Error::Unsupported {
+            path: String::new(),
+            what: "zip64".into(),
+        });
+    }
 
     let entries = u16::from_le_bytes([tail[at + 10], tail[at + 11]]);
     let dir_offset =
         u32::from_le_bytes([tail[at + 16], tail[at + 17], tail[at + 18], tail[at + 19]]);
-    let has_locator = at >= 20 && &tail[at - 20..at - 16] == ZIP64_LOCATOR_SIG;
-    if entries == u16::MAX || dir_offset == u32::MAX || has_locator {
+    if entries == u16::MAX || dir_offset == u32::MAX {
         return Err(Error::Unsupported {
             path: String::new(),
             what: "zip64".into(),

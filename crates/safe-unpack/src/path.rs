@@ -3,13 +3,14 @@
 use crate::Limits;
 use crate::error::PathError;
 
-/// Normalizes an archive path to `a/b/c`, relative to the root.
+/// Checks an archive path and returns it without its trailing `/`, if it has one.
 ///
-/// Returns `Ok(None)` for the root itself (`""` after stripping `.` components, such as `./`).
-/// Rejects absolute paths, `..`, NUL and control characters, backslashes, non-UTF-8 names and
-/// paths over the depth or length limits. Rejecting rather than repairing means the extracted
-/// tree never differs from what the archive says in a way an attacker could steer.
-pub(crate) fn sanitize(raw: &[u8], limits: &Limits) -> Result<Option<String>, PathError> {
+/// Only canonical paths are accepted: relative, `/`-separated, with no `.`, `..` or empty
+/// components, no NUL, control characters or backslashes, valid UTF-8, and within the depth and
+/// length limits. Rejecting rather than repairing matters because npm strips the first *raw*
+/// component (`strip: 1`) before it normalizes: `./index.js` installs as `index.js`, while a
+/// normalizer that dropped the `.` first would see a top-level file npm ignores.
+pub(crate) fn sanitize(raw: &[u8], limits: &Limits) -> Result<String, PathError> {
     if raw.is_empty() {
         return Err(PathError::Empty);
     }
@@ -23,18 +24,19 @@ pub(crate) fn sanitize(raw: &[u8], limits: &Limits) -> Result<Option<String>, Pa
     if text.starts_with('/') || has_drive_prefix(text) {
         return Err(PathError::Absolute);
     }
-    let mut parts: Vec<&str> = Vec::new();
-    for part in text.split('/') {
+    let body = text.strip_suffix('/').unwrap_or(text);
+    let mut depth = 0;
+    for part in body.split('/') {
         match part {
-            "" | "." => {}
+            "" | "." => return Err(PathError::NotCanonical),
             ".." => return Err(PathError::Traversal),
-            _ => parts.push(part),
+            _ => depth += 1,
         }
     }
-    if parts.len() > limits.max_depth {
+    if depth > limits.max_depth {
         return Err(PathError::TooDeep);
     }
-    Ok((!parts.is_empty()).then(|| parts.join("/")))
+    Ok(body.to_owned())
 }
 
 /// `C:` style prefixes, which some zip tools write and Windows extractors treat as absolute.
@@ -78,7 +80,7 @@ pub(crate) fn resolve_symlink(link: &str, target: &[u8], limits: &Limits) -> Opt
 mod tests {
     use super::*;
 
-    fn ok(raw: &str) -> Option<String> {
+    fn ok(raw: &str) -> String {
         sanitize(raw.as_bytes(), &Limits::default()).unwrap()
     }
 
@@ -87,18 +89,12 @@ mod tests {
     }
 
     #[test]
-    fn normalizes_ordinary_paths() {
-        assert_eq!(ok("package/index.js").as_deref(), Some("package/index.js"));
-        assert_eq!(
-            ok("./package//lib/./a.js").as_deref(),
-            Some("package/lib/a.js")
-        );
-        assert_eq!(ok("package/").as_deref(), Some("package"));
-        assert_eq!(ok("./"), None);
-        assert_eq!(ok("."), None);
-        assert_eq!(ok("dir/ünïcode ✓.js").as_deref(), Some("dir/ünïcode ✓.js"));
+    fn accepts_canonical_paths() {
+        assert_eq!(ok("package/index.js"), "package/index.js");
+        assert_eq!(ok("package/"), "package");
+        assert_eq!(ok("dir/ünïcode ✓.js"), "dir/ünïcode ✓.js");
         // A name that merely contains dots is fine.
-        assert_eq!(ok("a/..b/c..").as_deref(), Some("a/..b/c.."));
+        assert_eq!(ok("a/..b/c../.hidden"), "a/..b/c../.hidden");
     }
 
     #[test]
@@ -108,6 +104,12 @@ mod tests {
             (b"../evil", PathError::Traversal),
             (b"package/../../evil", PathError::Traversal),
             (b"package/..", PathError::Traversal),
+            (b"./package.json", PathError::NotCanonical),
+            (b"package/./a.js", PathError::NotCanonical),
+            (b"package//a.js", PathError::NotCanonical),
+            (b"./", PathError::NotCanonical),
+            (b".", PathError::NotCanonical),
+            (b"package//", PathError::NotCanonical),
             (b"/etc/passwd", PathError::Absolute),
             (b"//server/share", PathError::Absolute),
             (b"C:/Windows/evil", PathError::Absolute),

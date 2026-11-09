@@ -11,6 +11,10 @@ pub enum PathError {
     Absolute,
     #[error("parent-directory component")]
     Traversal,
+    #[error("`.` or empty path component")]
+    NotCanonical,
+    #[error("file name ends with `/`")]
+    TrailingSlash,
     #[error("not valid UTF-8")]
     NotUtf8,
     #[error("control character, NUL or backslash in path")]
@@ -53,13 +57,21 @@ pub enum Error {
     Duplicate { path: String },
     #[error("{path}: conflicts with an earlier entry of another kind")]
     Conflict { path: String },
+    #[error("paths total more than {limit} bytes")]
+    PathBytesExceeded { limit: u64 },
+    #[error("archive is {found:?}, but only {allowed:?} is accepted here")]
+    UnexpectedFormat {
+        found: crate::Format,
+        allowed: Vec<crate::Format>,
+    },
     #[error("tar extension header of {size} bytes exceeds the {limit}-byte limit")]
     ExtensionTooLarge { size: u64, limit: u64 },
-    #[error("malformed archive: {0}")]
+    #[error("malformed archive: {}", quote(.0.as_bytes()))]
     Malformed(String),
     #[error("destination {0} must be an existing, empty directory")]
     BadDestination(PathBuf),
-    #[error("I/O error: {0}")]
+    /// I/O errors can quote archive bytes (the tar crate's do), so they are escaped too.
+    #[error("I/O error: {}", quote(.0.to_string().as_bytes()))]
     Io(std::io::Error),
 }
 

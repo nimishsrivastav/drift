@@ -95,11 +95,27 @@ pub fn detect(header: &[u8]) -> Option<Format> {
     }
 }
 
-/// Extracts an archive into `sink`, enforcing `limits`.
+/// Every format this crate reads.
+pub const ALL_FORMATS: [Format; 3] = [Format::TarGz, Format::Tar, Format::Zip];
+
+/// Extracts an archive of any supported format into `sink`, enforcing `limits`.
 pub fn unpack_to_sink<R: Read + Seek>(
+    input: R,
+    limits: &Limits,
+    sink: &mut dyn Sink,
+) -> Result<Manifest, Error> {
+    unpack_to_sink_as(input, limits, sink, &ALL_FORMATS)
+}
+
+/// Extracts an archive into `sink` if its format is one of `allowed`.
+///
+/// Callers that know what the consumer will read should say so: npm reads every tarball as
+/// tar, so a file that also parses as a zip must not be analyzed as one.
+pub fn unpack_to_sink_as<R: Read + Seek>(
     mut input: R,
     limits: &Limits,
     sink: &mut dyn Sink,
+    allowed: &[Format],
 ) -> Result<Manifest, Error> {
     let size = input.seek(SeekFrom::End(0)).map_err(Error::Io)?;
     if size > limits.max_archive_bytes {
@@ -116,6 +132,12 @@ pub fn unpack_to_sink<R: Read + Seek>(
         .map_err(Error::Io)?;
     input.seek(SeekFrom::Start(0)).map_err(Error::Io)?;
     let format = detect(&header).ok_or(Error::UnknownFormat)?;
+    if !allowed.contains(&format) {
+        return Err(Error::UnexpectedFormat {
+            found: format,
+            allowed: allowed.to_vec(),
+        });
+    }
 
     let meter = Meter::new(limits);
     let mut walker = Walker::new(limits, &meter, sink);
@@ -138,9 +160,10 @@ pub fn unpack_into<R: Read + Seek>(
     input: R,
     dest: &Path,
     limits: &Limits,
+    allowed: &[Format],
 ) -> Result<Manifest, Error> {
     let mut sink = DirSink::new(dest)?;
-    unpack_to_sink(input, limits, &mut sink)
+    unpack_to_sink_as(input, limits, &mut sink, allowed)
 }
 
 /// An archive extracted into a fresh temporary directory, deleted when this is dropped.
@@ -156,12 +179,23 @@ impl Unpacked {
     }
 }
 
-/// Extracts the archive at `archive` into a fresh temporary directory under `parent`, or under
-/// the system temporary directory if `parent` is `None`. A failed extraction leaves nothing behind.
+/// Extracts the archive at `archive`, in any supported format, into a fresh temporary directory
+/// under `parent`, or under the system temporary directory if `parent` is `None`. A failed
+/// extraction leaves nothing behind.
 pub fn unpack_file(
     archive: &Path,
     parent: Option<&Path>,
     limits: &Limits,
+) -> Result<Unpacked, Error> {
+    unpack_file_as(archive, parent, limits, &ALL_FORMATS)
+}
+
+/// Like [`unpack_file`], accepting only the `allowed` formats.
+pub fn unpack_file_as(
+    archive: &Path,
+    parent: Option<&Path>,
+    limits: &Limits,
+    allowed: &[Format],
 ) -> Result<Unpacked, Error> {
     let file = File::open(archive).map_err(Error::Io)?;
     if !file.metadata().map_err(Error::Io)?.is_file() {
@@ -177,7 +211,7 @@ pub fn unpack_file(
         None => builder.tempdir(),
     }
     .map_err(Error::Io)?;
-    let manifest = unpack_into(std::io::BufReader::new(file), dir.path(), limits)?;
+    let manifest = unpack_into(std::io::BufReader::new(file), dir.path(), limits, allowed)?;
     Ok(Unpacked { dir, manifest })
 }
 

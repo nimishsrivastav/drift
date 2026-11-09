@@ -87,7 +87,13 @@ pub struct Tree {
 
 impl Tree {
     pub fn from_npm_tarball(path: &Path, config: &Config) -> Result<Self, ArtifactError> {
-        let unpacked = safe_unpack::unpack_file(path, config.tmp_dir.as_deref(), &config.limits)?;
+        // npm reads every tarball as tar, whatever else the bytes might also parse as.
+        let unpacked = safe_unpack::unpack_file_as(
+            path,
+            config.tmp_dir.as_deref(),
+            &config.limits,
+            &[safe_unpack::Format::TarGz, safe_unpack::Format::Tar],
+        )?;
         let mut files = BTreeMap::new();
         let mut roots = BTreeSet::new();
         let mut links = 0;
@@ -119,6 +125,18 @@ impl Tree {
             roots,
             links,
         })
+    }
+
+    /// Reads at most `max` bytes, and says whether the file was longer.
+    pub fn read_prefix(&self, path: &str, max: u64) -> Option<(Vec<u8>, bool)> {
+        let info = self.files.get(path)?;
+        let mut data = Vec::new();
+        File::open(&info.disk)
+            .ok()?
+            .take(max)
+            .read_to_end(&mut data)
+            .ok()?;
+        Some((data, info.size > max))
     }
 
     pub fn read(&self, path: &str, max: u64) -> Option<Vec<u8>> {

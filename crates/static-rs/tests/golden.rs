@@ -402,3 +402,105 @@ fn old_checkout_is_a_weaker_fallback() {
             .any(|e| e.contains("compared with v1.0.0"))
     );
 }
+
+#[test]
+fn unparseable_manifest_still_reports_its_hooks() {
+    let a = Artifacts::new();
+    let base = vec![(
+        "package/package.json".to_owned(),
+        br#"{"name":"x","version":"1.0.0"}"#.to_vec(),
+        0o644,
+    )];
+    // A BOM is fine; the lone surrogate is what serde_json refuses and npm accepts.
+    let mut manifest = b"\xef\xbb\xbf".to_vec();
+    manifest.extend_from_slice(
+        br#"{"name":"x","description":"\ud800","scripts":{"preinstall":"node x.js"}}"#,
+    );
+    let next = vec![
+        ("package/package.json".to_owned(), manifest, 0o644),
+        ("package/x.js".to_owned(), b"// synthetic\n".to_vec(), 0o644),
+    ];
+    let old = version("x", "1.0.0", a.tarball("old.tgz", &pack(&base)), None);
+    let new = version("x", "1.0.1", a.tarball("new.tgz", &pack(&next)), None);
+    let response = analyze(&pair(Some(old), new), &a.config());
+    let kinds = kinds(&response);
+    assert!(
+        kinds.contains(&"manifest_unparseable".to_owned()),
+        "{kinds:?}"
+    );
+    let hook = response
+        .findings
+        .iter()
+        .find(|f| f.kind == "install_hook_added")
+        .expect("hook recovered from raw text");
+    assert_eq!(hook.attrs["script"], "node x.js");
+    let file = response
+        .findings
+        .iter()
+        .find(|f| f.kind == "file_added")
+        .unwrap();
+    assert_eq!(file.context().as_str_name(), "EXEC_CONTEXT_INSTALL");
+}
+
+#[test]
+fn junk_files_cannot_bury_the_payload() {
+    let a = Artifacts::new();
+    let dir = fixture(PACKAGE);
+    let old = version(
+        PACKAGE,
+        "1.0.0",
+        a.tarball("old.tgz", &pack_dir(&dir.join("1.0.0"))),
+        None,
+    );
+    let mut entries = Vec::new();
+    collect(&dir.join("1.0.1"), &dir.join("1.0.1"), &mut entries);
+    // 300 files that sort before lib/build.js, more than the per-kind cap.
+    for i in 0..300 {
+        entries.push((
+            format!("package/aaa/{i:04}.js"),
+            b"// junk\n".to_vec(),
+            0o644,
+        ));
+    }
+    entries.sort();
+    let new = version(
+        PACKAGE,
+        "1.0.1",
+        a.tarball("new.tgz", &pack(&entries)),
+        None,
+    );
+    let response = analyze(&pair(Some(old), new), &a.config());
+    assert!(
+        response
+            .findings
+            .iter()
+            .any(|f| f.kind == "file_added" && f.evidence[0].file == "lib/build.js")
+    );
+    assert!(
+        response
+            .errors
+            .iter()
+            .any(|e| e.contains("file_added") && e.contains("more findings not listed"))
+    );
+}
+
+#[test]
+fn zip_disguised_as_a_tarball_is_rejected() {
+    let a = Artifacts::new();
+    let good = version(
+        PACKAGE,
+        "1.0.0",
+        a.tarball("old.tgz", &pack_dir(&fixture(PACKAGE).join("1.0.0"))),
+        None,
+    );
+    // Starts like a zip; npm would read it as tar regardless.
+    let bad = version(
+        PACKAGE,
+        "1.0.1",
+        a.tarball("new.tgz", b"PK\x05\x06\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"),
+        None,
+    );
+    let response = analyze(&pair(Some(good), bad), &a.config());
+    assert_eq!(kinds(&response), ["archive_rejected"]);
+    assert!(response.findings[0].attrs["error"].contains("Zip"));
+}

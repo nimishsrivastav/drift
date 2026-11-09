@@ -156,3 +156,135 @@ example from the dataset's own metadata, before those samples can be used.
 
 Hard-negative rationales say only what registry metadata shows, because reading a tarball on the host is not allowed. M3's
 analyzers can confirm the behavior each one implies. Each pair's trait was checked against the metadata of both versions.
+
+## 2026-11-09: safe-unpack rejects rather than repairs, and never creates links
+
+Any entry with `..`, a `.` or empty component, an absolute or drive-letter path, a control character, a backslash or a
+non-UTF-8 name fails the whole archive, as does a regular file whose name ends in `/`, as do device files, fifos, sparse files, duplicate paths, and an entry under a path that is already a file
+or a link. Symlinks and hardlinks are recorded in the manifest with their resolved target and never created on disk; one
+whose target leaves the root fails the archive. Files are written with `O_EXCL` and mode 0644.
+
+Why: a repaired path (say, `../x` turned into `x`) is a tree the archive didn't describe, and extractors repair in
+different ways, which is room for an attacker to show the analyzer one thing and the installer another. Not creating links
+makes write-through attacks impossible rather than merely checked, and npm doesn't extract links anyway (pacote filters
+them out). Duplicates are rejected because extractors disagree on which copy wins. Rejection is not silence: static-rs
+reports a rejected archive as an `archive_rejected` finding.
+
+## 2026-11-09: safe-unpack parses tar extension headers itself
+
+The `tar` crate runs in raw mode. GNU long-name and long-link bodies and pax headers are read by safe-unpack, each capped at
+64 KiB before it is read into memory. A pax `size` that differs from the header size, a pax sparse file, and a pax global
+header that sets a path, link or size are refused. A NUL inside a GNU long name is refused. Concatenated gzip members are
+all read.
+
+Why: in its default mode the crate reads extension bodies of any declared size into memory. Raw mode follows the header
+size, so honouring a pax size override would mean reading the stream differently from node-tar; refusing it costs nothing
+at our file-size limits. Global headers are applied by some extractors and ignored by others. npm's gunzip reads every
+member, so a decoder that stopped after the first would miss appended content.
+
+## 2026-11-09: Zip is limited to stored and deflated entries, without zip64
+
+The end-of-central-directory record is read before the `zip` crate loads the central directory, so the entry limit holds
+for a crafted directory. Encrypted entries and other compression methods are refused, and the ratio limit is measured
+against the whole archive because zip entries may share compressed data.
+
+Why: wheels use deflate, and nothing within our size limits needs zip64. Every extra method is attack surface for no gain.
+
+## 2026-11-09: Extraction limits
+
+Library defaults: 256 MiB archive, 1 GiB total and 256 MiB per file, 100,000 entries, depth 64, 4 KiB paths, and a 200:1
+ratio enforced once 8 MiB has been decompressed. static-rs lowers the total to 512 MiB per version and runs two analyses at
+once in a 2.25 GiB tmpfs. The paths remembered for duplicate checks are capped at 32 MiB in total. Every limit is checked on bytes actually produced, not on sizes the archive declares.
+
+Why: the largest legitimate npm packages are a few hundred MiB unpacked and compress at most a few dozen to one; bombs are
+in the thousands. The grace keeps small, very compressible files such as lockfiles from tripping the ratio.
+
+## 2026-11-09: static-rs views a tarball the way npm installs it
+
+The first path component is stripped whatever it is called, files directly at the top are dropped, a later entry for the
+same installed path replaces an earlier one, and links are left out. More than one top-level directory is itself a finding,
+`tarball_multiple_roots`.
+
+Why: pacote extracts with `strip: 1`, so `package/index.js` and `evil/index.js` both install as `index.js`. Analyzing the
+archive's own paths would miss that the second replaces the first.
+
+## 2026-11-09: Tarball-vs-repo compares only what changed, and allowlists build output only where the repo lacks it
+
+Only files added or changed since the old tarball are compared, so a file published the same way for years doesn't
+reappear in every report. Paths under `dist/`, `lib/`, `build/` and similar, and suffixes such as `.min.js`, `.map` and
+`.d.ts`, are skipped only when the repo doesn't track that directory or file; if it does, they are compared like anything
+else. `package.json`, README, LICENSE and CHANGELOG at the top are skipped, because publish tooling rewrites them and
+`package.json` changes are covered by the scripts diff. Line endings are ignored. When the new version's ref is unresolved,
+the old version's checkout is used with half the confidence. When more than half the compared files differ, confidence is
+halved again, because the checkout is probably the wrong commit.
+
+Why: a blanket allowlist for `lib/` would hide a payload in a project that commits `lib/`, which is where the xz-style
+divergence lives. The cost is that a package publishing compiled output into a directory the repo also uses gets some
+noise, at low confidence.
+
+## 2026-11-09: Install-hook weights, and npm's implicit `node-gyp rebuild`
+
+`preinstall`, `install` and `postinstall` weigh 0.9; `prepare` and its pre/post hooks weigh 0.5, because npm runs them only
+for git and local installs. A new `binding.gyp` with no declared `install` or `preinstall` counts as an added `install`
+hook, because npm adds `node-gyp rebuild` by itself. Files a hook names (`node build.js`) get the `INSTALL` context; M4's
+import graph will follow what they load.
+
+## 2026-11-09: A failing analyzer never fails the job
+
+The orchestrator calls every analyzer at once with its own timeout (5 minutes by default) and records each call in a new
+`analyzer_runs` table as `ok`, `unimplemented` or `failed`, with its notes and duration. Findings are sanitized before
+storage: the analyzer field is set to the configured name, `via_dependency` is cleared (roll-up is the orchestrator's job),
+confidence is clamped to [0, 1], NaNs are dropped, and each analyzer is capped at 5,000 findings. Registry entries take a
+`role`, and the scorer is discovered at startup but never sent `Analyze`. Without an analyzer config the CLI only ingests.
+
+Why: meta-go and trace-rs are still stubs, and one analyzer being down shouldn't erase what the others found. A missing
+result must still be visible, which is what the runs table is for; it also gives M8 its time-to-verdict numbers. An analyzer
+is the likelier component to be compromised, so it must not be able to speak for another one or forge a dependency roll-up.
+
+## 2026-11-09: M3's end-to-end incident is a synthetic fixture
+
+PLAN.md names eslint-scope 3.7.1→3.7.2 "or another available incident". 3.7.2 was unpublished from npm, and no seeded
+incident has a sample yet (only axios is `sample_available: y`, and real samples may only be unpacked inside a container).
+`fixtures/npm/drift-fixture-install-hook` recreates the eslint-scope technique instead: an update adds a `postinstall` hook
+running a new file, absent from the repo, that reads `~/.npmrc` and reports only its length to `sinkhole.invalid`.
+`deploy/fixture-registry` serves it to the orchestrator as an npm registry, and `just demo-fixture` replays it.
+
+Why: the end-to-end path (registry, ingest, store, gRPC, unpack, diff, findings) is what M3 has to prove, and a synthetic
+fixture exercises all of it without a real sample on the host. Replaying real incidents is M8's job, in the sandbox.
+
+## 2026-11-09: The fixture registry is its own Go module, outside go.work
+
+Why: it writes tarballs, which needs `archive/tar` and `compress/gzip`, and the orchestrator module's test forbids those
+imports to keep unpacking out of Go. It uses only the standard library, so it builds with `GOWORK=off` and doesn't make
+every other Dockerfile copy one more module.
+
+## 2026-11-09: Security review of the unpacker and static-rs
+
+The `security-reviewer` agent found three high, five medium and three low issues; all are fixed, each with a test or attack
+archive:
+
+- **High, differentials that hid a payload from the analyzer but not from npm.** One zero block ended the archive for us
+  but not for node-tar, so entries after it were invisible: the rest of the stream must now be zeros. `.` and empty
+  components were normalized away before npm's `strip: 1`, so `./index.js` was dropped here and installed by npm: such
+  paths are now rejected. Formats were detected from content, so a tar/zip polyglot could show us a benign zip: static-rs
+  now accepts only tar for npm (`unpack_file_as`).
+- **Medium.** A `package.json` serde_json refuses but npm accepts hid every install hook: it is now read leniently (BOM,
+  invalid UTF-8, 16 MiB), and if it still fails, hooks are recovered from the raw text and a `manifest_unparseable`
+  finding is reported. A pax path and a GNU long name on one entry are refused, since extractors pick different winners.
+  The per-kind finding cap now keeps every install-time finding and ranks the rest by confidence, so junk files can't push
+  the payload out; junk also no longer drives the wrong-ref heuristic. Files an install hook runs are never skipped by the
+  tarball-vs-repo allowlists, and README/LICENSE-style names are skipped only with document extensions. The memory used for
+  duplicate checks is bounded.
+- **Low.** Errors and notes are escaped, the tmpfs covers the worst case, and a regular file named `dir/` is refused.
+- **Speculative.** The zip end record must now be unique and end exactly at the end of the file, with no zip64 locator.
+
+Deferred, because they concern later milestones:
+
+- **Wheels (M9).** pip writes every member as a regular file, so a zip entry with symlink mode is code to pip, not a link.
+  Zip names without the UTF-8 flag are cp437 to Python. The wheel path must handle both.
+- **M4.** `EntryKind::Symlink.target` is resolved lexically, ignoring earlier links. It is safe only because links are
+  never created or followed, so nothing may treat it as a trusted path.
+- **M5.** Differential tests that list each attack archive with node-tar inside the sandbox would confirm the npm-side
+  assumptions, which the review drew from memory of node-tar and pacote.
+- **Accepted.** `tracked_by_repo` can learn whether a path exists outside the checkout through a symlinked directory in it.
+  That is one boolean, in a read-only container, and git checkouts are made with symlinks disabled.

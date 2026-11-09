@@ -114,6 +114,15 @@ fn walk<R: Read>(stream: R, walker: &mut Walker<'_>) -> Result<(), Error> {
 
         let ext = std::mem::take(&mut pending);
         let pax = ext.pax.unwrap_or_default();
+        // Extractors disagree on which wins when both say where an entry goes: node-tar takes
+        // whichever header came last. Refuse instead of guessing.
+        if (pax.path.is_some() && ext.long_name.is_some())
+            || (pax.link.is_some() && ext.long_link.is_some())
+        {
+            return Err(Error::Malformed(
+                "both a pax header and a GNU long name set one entry's path".into(),
+            ));
+        }
         let header_path = entry.path_bytes().into_owned();
         let path = pax.path.or(ext.long_name).unwrap_or(header_path);
         if pax.sparse {
@@ -159,7 +168,22 @@ fn walk<R: Read>(stream: R, walker: &mut Walker<'_>) -> Result<(), Error> {
             "extension header with no entry after it".into(),
         ));
     }
-    Ok(())
+    // The iterator stops at the first zero block, but node-tar only stops after two in a row and
+    // keeps reading after one. Anything but zeros after the end marker is content the installer
+    // may see and we would not.
+    let mut rest = archive.into_inner();
+    let mut buf = [0u8; 8192];
+    loop {
+        let n = rest.read(&mut buf).map_err(|e| walker.io(e))?;
+        if n == 0 {
+            return Ok(());
+        }
+        if buf[..n].iter().any(|&b| b != 0) {
+            return Err(Error::Malformed(
+                "data after the end-of-archive marker".into(),
+            ));
+        }
+    }
 }
 
 fn read_extension(entry: &mut impl Read, size: u64, walker: &Walker<'_>) -> Result<Vec<u8>, Error> {

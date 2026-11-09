@@ -22,6 +22,7 @@ fn limits() -> Limits {
         max_ratio: 50,
         ratio_grace_bytes: 256 << 10,
         max_extension_bytes: 4 << 10,
+        max_path_bytes_total: 1 << 20,
     }
 }
 

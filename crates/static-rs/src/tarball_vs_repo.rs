@@ -154,12 +154,14 @@ pub fn diff(
         {
             continue; // Published like this before, so not new drift.
         }
-        if is_publish_rewritten(path) {
+        // A file an install hook runs is always compared, whatever its name.
+        let at_install = install_files.contains(path);
+        if is_publish_rewritten(path) && !at_install {
             continue;
         }
         let build_output = is_build_output(path);
         let repo_file = repo.package_dir.join(path);
-        if build_output && !tracked_by_repo(repo, path) {
+        if build_output && !at_install && !tracked_by_repo(repo, path) {
             continue;
         }
         let outcome = match fs::symlink_metadata(&repo_file) {
@@ -175,10 +177,15 @@ pub fn diff(
         });
     }
 
-    let compared = results.len();
+    // Only files the repo has say anything about whether it is the right commit; files missing
+    // from it are what an attacker controls by adding junk.
+    let compared = results
+        .iter()
+        .filter(|r| r.outcome != Outcome::Missing)
+        .count();
     let differing = results
         .iter()
-        .filter(|r| r.outcome != Outcome::Same)
+        .filter(|r| r.outcome == Outcome::Differs)
         .count();
     let mut scale = repo.confidence;
     let mut caveats = repo.caveats.clone();
@@ -227,14 +234,20 @@ fn r_rel(root: &Path, dir: &Path) -> String {
 }
 
 fn is_publish_rewritten(path: &str) -> bool {
+    if path == "package.json" {
+        return true;
+    }
     if path.contains('/') {
         return false;
     }
     let lower = path.to_ascii_lowercase();
-    let stem = lower.split('.').next().unwrap_or("");
-    PUBLISH_REWRITTEN
+    let (stem, extension) = lower.split_once('.').unwrap_or((&lower, ""));
+    // Documents only: `license.js` is code, whatever it is called.
+    let document = matches!(extension, "" | "md" | "markdown" | "txt" | "rst" | "adoc");
+    let named = PUBLISH_REWRITTEN
         .iter()
-        .any(|name| lower == *name || stem == *name)
+        .any(|name| stem == *name || stem.starts_with(&format!("{name}-")));
+    document && named
 }
 
 fn is_build_output(path: &str) -> bool {
@@ -298,6 +311,10 @@ mod tests {
         assert!(is_publish_rewritten("package.json"));
         assert!(!is_publish_rewritten("docs/README.md"));
         assert!(!is_publish_rewritten("licensecheck.js"));
+        assert!(is_publish_rewritten("LICENSE-MIT"));
+        assert!(!is_publish_rewritten("license.js"));
+        assert!(!is_publish_rewritten("history.cjs"));
+        assert!(!is_publish_rewritten("docs/package.json"));
     }
 
     #[test]

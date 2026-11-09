@@ -20,6 +20,7 @@ pub(crate) struct Walker<'a> {
     pub(crate) meter: &'a Meter,
     sink: &'a mut dyn Sink,
     seen: HashMap<String, Occupant>,
+    seen_bytes: u64,
     count: u64,
     pub(crate) entries: Vec<Entry>,
 }
@@ -31,6 +32,7 @@ impl<'a> Walker<'a> {
             meter,
             sink,
             seen: HashMap::new(),
+            seen_bytes: 0,
             count: 0,
             entries: Vec::new(),
         }
@@ -40,8 +42,8 @@ impl<'a> Walker<'a> {
         self.meter.error(err)
     }
 
-    /// Counts an entry and normalizes its path. `None` is the root directory.
-    fn admit(&mut self, raw: &[u8]) -> Result<Option<String>, Error> {
+    /// Counts an entry and checks its path.
+    fn admit(&mut self, raw: &[u8]) -> Result<String, Error> {
         self.count += 1;
         if self.count > self.limits.max_entries {
             return Err(Error::TooManyEntries {
@@ -52,6 +54,18 @@ impl<'a> Walker<'a> {
             path: quote(raw),
             reason,
         })
+    }
+
+    /// Remembers a path, bounding the memory that remembering every path and ancestor takes.
+    fn remember(&mut self, path: &str, occupant: Occupant) -> Result<(), Error> {
+        self.seen_bytes = self.seen_bytes.saturating_add(path.len() as u64);
+        if self.seen_bytes > self.limits.max_path_bytes_total {
+            return Err(Error::PathBytesExceeded {
+                limit: self.limits.max_path_bytes_total,
+            });
+        }
+        self.seen.insert(path.to_owned(), occupant);
+        Ok(())
     }
 
     /// Checks that nothing above `path` is a file or a link, and records missing ancestors as
@@ -73,9 +87,7 @@ impl<'a> Walker<'a> {
                         path: quote(path.as_bytes()),
                     });
                 }
-                None => {
-                    self.seen.insert(ancestor.to_owned(), Occupant::Dir);
-                }
+                None => self.remember(ancestor, Occupant::Dir)?,
             }
             end += 1;
         }
@@ -88,7 +100,7 @@ impl<'a> Walker<'a> {
         self.claim_ancestors(path)?;
         match self.seen.get(path) {
             None => {
-                self.seen.insert(path.to_owned(), occupant);
+                self.remember(path, occupant)?;
                 Ok(true)
             }
             Some(Occupant::Dir) if occupant == Occupant::Dir => Ok(false),
@@ -102,9 +114,7 @@ impl<'a> Walker<'a> {
     }
 
     pub(crate) fn dir(&mut self, raw: &[u8], mode: u32) -> Result<(), Error> {
-        let Some(path) = self.admit(raw)? else {
-            return Ok(());
-        };
+        let path = self.admit(raw)?;
         if self.claim(&path, Occupant::Dir)? {
             self.sink.dir(&path).map_err(Error::Io)?;
             self.entries.push(Entry {
@@ -126,12 +136,14 @@ impl<'a> Walker<'a> {
         declared: u64,
         content: &mut dyn Read,
     ) -> Result<(), Error> {
-        let Some(path) = self.admit(raw)? else {
+        let path = self.admit(raw)?;
+        // node-tar treats a regular entry named `dir/` as a directory.
+        if raw.ends_with(b"/") {
             return Err(Error::BadPath {
                 path: quote(raw),
-                reason: crate::PathError::Empty,
+                reason: crate::PathError::TrailingSlash,
             });
-        };
+        }
         self.claim(&path, Occupant::File)?;
         if declared > self.limits.max_file_bytes {
             return Err(Error::FileTooLarge {
@@ -160,12 +172,7 @@ impl<'a> Walker<'a> {
     }
 
     pub(crate) fn symlink(&mut self, raw: &[u8], target: &[u8]) -> Result<(), Error> {
-        let Some(path) = self.admit(raw)? else {
-            return Err(Error::BadPath {
-                path: quote(raw),
-                reason: crate::PathError::Empty,
-            });
-        };
+        let path = self.admit(raw)?;
         let Some(resolved) = resolve_symlink(&path, target, self.limits) else {
             return Err(Error::LinkEscape {
                 path,
@@ -183,15 +190,10 @@ impl<'a> Walker<'a> {
     }
 
     pub(crate) fn hardlink(&mut self, raw: &[u8], target: &[u8]) -> Result<(), Error> {
-        let Some(path) = self.admit(raw)? else {
-            return Err(Error::BadPath {
-                path: quote(raw),
-                reason: crate::PathError::Empty,
-            });
-        };
+        let path = self.admit(raw)?;
         // Hard link targets are relative to the archive root, not to the link.
         let resolved = match sanitize(target, self.limits) {
-            Ok(Some(resolved)) => resolved,
+            Ok(resolved) => resolved,
             _ => {
                 return Err(Error::LinkEscape {
                     path,

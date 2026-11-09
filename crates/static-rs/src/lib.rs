@@ -122,13 +122,25 @@ fn load(version: &PackageVersion, config: &Config) -> Result<Tree, ArtifactError
 }
 
 fn manifest(tree: &Tree, which: &str, collector: &mut Collector) -> Option<npm_manifest::Manifest> {
-    match npm_manifest::load(tree) {
-        Ok(manifest) => manifest,
-        Err(err) => {
-            collector.note(format!("{which} version: {err}"));
-            None
+    let loaded = npm_manifest::load(tree);
+    if let Some(problem) = loaded.problem {
+        if which == "new" {
+            // npm may well accept what we couldn't parse, so this is a finding, not a note.
+            collector.push(
+                Finding::new(
+                    "manifest_unparseable",
+                    Capability::Unspecified,
+                    ExecContext::Install,
+                    0.7,
+                )
+                .evidence("package.json", 0, "")
+                .attr("error", problem),
+            );
+        } else {
+            collector.note(format!("{which} version: {problem}"));
         }
     }
+    loaded.manifest
 }
 
 /// The new version's checkout, or the old version's with less confidence: files missing from

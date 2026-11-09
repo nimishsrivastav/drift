@@ -26,6 +26,9 @@ pub struct Limits {
     pub ratio_grace_bytes: u64,
     /// Size of a tar GNU long-name, long-link or pax header body, which has to be held in memory.
     pub max_extension_bytes: u64,
+    /// Sum of the lengths of every distinct path and parent directory seen, which are kept in
+    /// memory to detect duplicates and conflicts.
+    pub max_path_bytes_total: u64,
 }
 
 impl Default for Limits {
@@ -40,6 +43,7 @@ impl Default for Limits {
             max_ratio: 200,
             ratio_grace_bytes: 8 * MIB,
             max_extension_bytes: 64 * KIB,
+            max_path_bytes_total: 32 * MIB,
         }
     }
 }

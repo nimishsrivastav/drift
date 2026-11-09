@@ -69,50 +69,81 @@ impl Finding {
     }
 }
 
-/// Collects findings, capping how many of one kind are listed so that a huge diff can't
-/// swamp the report. What was left out is recorded as a note.
+/// Collects findings, capping how many of one kind are listed so that a huge diff can't swamp
+/// the report. Within a kind, install-time findings are always kept and the rest are ranked by
+/// confidence, so padding a package with junk files can't push the payload out of the list.
+/// What was left out is recorded as a note.
 pub struct Collector {
     findings: Vec<DriftFinding>,
-    per_kind: HashMap<String, usize>,
     pub notes: Vec<String>,
     cap: usize,
 }
+
+const MAX_NOTE: usize = 1000;
 
 impl Collector {
     pub fn new(cap: usize) -> Self {
         Self {
             findings: Vec::new(),
-            per_kind: HashMap::new(),
             notes: Vec::new(),
             cap,
         }
     }
 
     pub fn push(&mut self, finding: Finding) {
-        let finding = finding.build();
-        let count = self.per_kind.entry(finding.kind.clone()).or_default();
-        *count += 1;
-        if *count <= self.cap {
-            self.findings.push(finding);
-        }
+        self.findings.push(finding.build());
     }
 
-    pub fn note(&mut self, note: impl Into<String>) {
-        self.notes.push(note.into());
+    /// Notes can quote package data, so they are cleaned like findings.
+    pub fn note(&mut self, note: impl AsRef<str>) {
+        self.notes.push(clean(note.as_ref(), MAX_NOTE));
     }
 
     pub fn finish(mut self) -> (Vec<DriftFinding>, Vec<String>) {
-        let mut kinds: Vec<_> = self
-            .per_kind
-            .iter()
-            .filter(|(_, n)| **n > self.cap)
-            .collect();
-        kinds.sort();
-        for (kind, n) in kinds {
-            self.notes
-                .push(format!("{kind}: {} more findings not listed", n - self.cap));
+        let mut by_kind: HashMap<&str, Vec<usize>> = HashMap::new();
+        for (index, finding) in self.findings.iter().enumerate() {
+            by_kind
+                .entry(finding.kind.as_str())
+                .or_default()
+                .push(index);
         }
-        (self.findings, self.notes)
+        let mut keep = vec![false; self.findings.len()];
+        let mut omitted: Vec<(String, usize)> = Vec::new();
+        for (kind, mut indices) in by_kind {
+            let install = |i: &usize| self.findings[*i].context() == ExecContext::Install;
+            indices.sort_by(|a, b| {
+                install(b)
+                    .cmp(&install(a))
+                    .then(
+                        self.findings[*b]
+                            .confidence
+                            .total_cmp(&self.findings[*a].confidence),
+                    )
+                    .then(a.cmp(b))
+            });
+            let mut kept = 0;
+            for i in &indices {
+                if install(i) || kept < self.cap {
+                    keep[*i] = true;
+                    kept += 1;
+                }
+            }
+            if kept < indices.len() {
+                omitted.push((kind.to_owned(), indices.len() - kept));
+            }
+        }
+        omitted.sort();
+        for (kind, n) in omitted {
+            self.notes
+                .push(format!("{kind}: {n} more findings not listed"));
+        }
+        let findings = self
+            .findings
+            .into_iter()
+            .zip(keep)
+            .filter_map(|(f, k)| k.then_some(f))
+            .collect();
+        (findings, self.notes)
     }
 }
 
@@ -146,5 +177,58 @@ mod tests {
         let (findings, notes) = c.finish();
         assert_eq!(findings.len(), 3);
         assert_eq!(notes, ["file_added: 3 more findings not listed"]);
+    }
+
+    #[test]
+    fn collector_keeps_install_findings_and_the_most_confident() {
+        let mut c = Collector::new(1);
+        for _ in 0..3 {
+            c.push(Finding::new(
+                "file_added",
+                Capability::Unspecified,
+                ExecContext::Unspecified,
+                0.3,
+            ));
+        }
+        c.push(
+            Finding::new(
+                "file_added",
+                Capability::Unspecified,
+                ExecContext::Unspecified,
+                0.6,
+            )
+            .attr("which", "best"),
+        );
+        c.push(
+            Finding::new(
+                "file_added",
+                Capability::Unspecified,
+                ExecContext::Install,
+                0.8,
+            )
+            .attr("which", "install-1"),
+        );
+        c.push(
+            Finding::new(
+                "file_added",
+                Capability::Unspecified,
+                ExecContext::Install,
+                0.8,
+            )
+            .attr("which", "install-2"),
+        );
+        let (findings, notes) = c.finish();
+        let mut kept: Vec<&str> = findings.iter().map(|f| f.attrs["which"].as_str()).collect();
+        kept.sort();
+        // The cap is spent on install-time findings first, but those are never dropped.
+        assert_eq!(kept, ["install-1", "install-2"]);
+        assert_eq!(notes, ["file_added: 4 more findings not listed"]);
+    }
+
+    #[test]
+    fn notes_are_cleaned() {
+        let mut c = Collector::new(1);
+        c.note("bad \x1b]8;;x\x07 name");
+        assert!(!c.finish().1[0].chars().any(char::is_control));
     }
 }

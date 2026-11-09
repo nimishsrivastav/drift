@@ -7,7 +7,7 @@ use drift_proto::v1::{Capability, ExecContext};
 use crate::artifact::Tree;
 use crate::findings::{Collector, Finding};
 
-const MAX_MANIFEST: u64 = 5 << 20;
+const MAX_MANIFEST: u64 = 16 << 20;
 
 /// Lifecycle scripts npm runs when a package is installed, with how likely each is to run
 /// for a package installed from the registry. `prepare` and its hooks run only for git and
@@ -65,16 +65,102 @@ impl Manifest {
     }
 }
 
-/// Reads the installed `package.json`, if there is one.
-pub fn load(tree: &Tree) -> Result<Option<Manifest>, String> {
+/// A `package.json` as read, plus why it couldn't be read normally, if it couldn't.
+pub struct Loaded {
+    /// Parsed, or reconstructed from the raw text when parsing failed.
+    pub manifest: Option<Manifest>,
+    pub problem: Option<String>,
+}
+
+/// Reads the installed `package.json`, if there is one, as leniently as npm does: a BOM is
+/// skipped and invalid UTF-8 is replaced. If it still won't parse, or is too large, the hooks
+/// are recovered from the raw text and the problem is reported, because a manifest npm accepts
+/// and we don't must not hide its install hooks.
+pub fn load(tree: &Tree) -> Loaded {
     if !tree.files.contains_key("package.json") {
-        return Ok(None);
+        return Loaded {
+            manifest: None,
+            problem: None,
+        };
     }
-    let bytes = tree
-        .read("package.json", MAX_MANIFEST)
-        .ok_or("package.json unreadable or too large")?;
-    let text = String::from_utf8(bytes).map_err(|_| "package.json is not UTF-8".to_owned())?;
-    Manifest::parse(text).map(Some)
+    let Some((bytes, truncated)) = tree.read_prefix("package.json", MAX_MANIFEST) else {
+        return Loaded {
+            manifest: None,
+            problem: Some("package.json unreadable".into()),
+        };
+    };
+    let bytes = bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(&bytes);
+    let text = String::from_utf8_lossy(bytes).into_owned();
+    if truncated {
+        let problem = format!("package.json is over {MAX_MANIFEST} bytes");
+        return Loaded {
+            manifest: Some(Manifest::scan(text)),
+            problem: Some(problem),
+        };
+    }
+    match Manifest::parse(text.clone()) {
+        Ok(manifest) => Loaded {
+            manifest: Some(manifest),
+            problem: None,
+        },
+        Err(err) => Loaded {
+            manifest: Some(Manifest::scan(text)),
+            problem: Some(err),
+        },
+    }
+}
+
+impl Manifest {
+    /// Recovers lifecycle scripts from text that isn't valid JSON to us: each `"hook": "..."`
+    /// pair is found by hand. Less exact than parsing, and only used when parsing fails.
+    pub fn scan(text: String) -> Self {
+        let mut scripts = BTreeMap::new();
+        for (name, _) in LIFECYCLE {
+            let quoted = format!("\"{name}\"");
+            let mut from = 0;
+            while let Some(at) = text[from..].find(&quoted) {
+                let after = from + at + quoted.len();
+                from = after;
+                let rest = text[after..].trim_start();
+                let Some(rest) = rest.strip_prefix(':') else {
+                    continue;
+                };
+                let rest = rest.trim_start();
+                let Some(body) = rest.strip_prefix('"') else {
+                    continue;
+                };
+                if let Some(value) = string_literal(body) {
+                    // The last one wins, as with duplicate JSON keys.
+                    scripts.insert(name.to_owned(), value);
+                }
+            }
+        }
+        Self {
+            text,
+            name: None,
+            scripts,
+        }
+    }
+}
+
+/// Reads a JSON string body up to its closing quote, decoding escapes where possible.
+fn string_literal(body: &str) -> Option<String> {
+    let mut escaped = false;
+    for (i, c) in body.char_indices() {
+        match c {
+            _ if escaped => escaped = false,
+            '\\' => escaped = true,
+            '"' => {
+                let raw = &body[..i];
+                return Some(
+                    serde_json::from_str::<String>(&format!("\"{raw}\""))
+                        .unwrap_or_else(|_| raw.to_owned()),
+                );
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -210,6 +296,17 @@ mod tests {
         assert_eq!(m.key_line("preinstall"), 0);
         assert_eq!(m.name.as_deref(), Some("x"));
         assert_eq!(m.scripts["postinstall"], "node a.js");
+    }
+
+    #[test]
+    fn scan_recovers_hooks_from_invalid_json() {
+        // A lone surrogate and trailing junk: npm's parser copes, serde_json doesn't.
+        let text = r#"{"description":"\ud800","scripts":{"preinstall" : "node x.js","postinstall":"a \"quoted\" b"}} junk"#;
+        assert!(Manifest::parse(text.to_owned()).is_err());
+        let m = Manifest::scan(text.to_owned());
+        assert_eq!(m.scripts["preinstall"], "node x.js");
+        assert_eq!(m.scripts["postinstall"], "a \"quoted\" b");
+        assert_eq!(m.key_line("preinstall"), 1);
     }
 
     #[test]

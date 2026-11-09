@@ -127,6 +127,12 @@ impl Tar {
         self.entry(b"././@LongLink", flag::LONG_NAME, &body, b"", 0o644)
     }
 
+    /// One 512-byte zero block: an end-of-archive marker to some readers, not to others.
+    pub fn zero_block(mut self) -> Self {
+        self.buf.extend_from_slice(&[0u8; 512]);
+        self
+    }
+
     fn push_body(&mut self, data: &[u8]) {
         self.buf.extend_from_slice(data);
         let pad = (512 - data.len() % 512) % 512;
@@ -174,7 +180,14 @@ pub enum ZipEntry<'a> {
 }
 
 pub fn zip(entries: &[ZipEntry<'_>]) -> Vec<u8> {
+    zip_with_comment(entries, b"")
+}
+
+pub fn zip_with_comment(entries: &[ZipEntry<'_>], comment: &[u8]) -> Vec<u8> {
     let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+    writer
+        .set_raw_comment(comment.to_vec().into_boxed_slice())
+        .unwrap();
     for entry in entries {
         match entry {
             ZipEntry::File(name, data) => {
@@ -376,6 +389,52 @@ pub fn all() -> Vec<(&'static str, Vec<u8>)> {
             zip(&[ZipEntry::Symlink("pkg/link", "../../etc")]),
         ),
         ("zip_bomb.zip", zip(&[ZipEntry::File("zeros.bin", &zeros)])),
+        (
+            "tar_zero_block_smuggle.tgz",
+            Tar::new()
+                .file("package/index.js", b"// benign\n")
+                .zero_block()
+                .file(
+                    "package/hidden.js",
+                    b"// read by node-tar, not by a reader that stops at one zero block\n",
+                )
+                .gz(),
+        ),
+        (
+            "tar_dot_prefix.tgz",
+            Tar::new()
+                .file("package/index.js", b"// benign\n")
+                .file("./index.js", b"// installed by npm as index.js\n")
+                .gz(),
+        ),
+        (
+            "tar_empty_component.tgz",
+            Tar::new().file("package//index.js", b"x").gz(),
+        ),
+        (
+            "tar_pax_and_long_name.tgz",
+            Tar::new()
+                .pax(flag::PAX, &[("path", "package/dist/x.min.js")])
+                .long_name(b"package/index.js")
+                .file("package/innocent.txt", b"x")
+                .gz(),
+        ),
+        (
+            "tar_file_with_trailing_slash.tgz",
+            Tar::new().file("package/lib/", b"").gz(),
+        ),
+        ("zip_trailing_data.zip", {
+            let mut z = zip(&[ZipEntry::File("pkg/__init__.py", b"# synthetic\n")]);
+            z.extend_from_slice(b"appended bytes some readers see");
+            z
+        }),
+        (
+            "zip_two_eocd.zip",
+            zip_with_comment(
+                &[ZipEntry::File("pkg/__init__.py", b"# synthetic\n")],
+                b"PK\x05\x06 fake end record in the comment",
+            ),
+        ),
         (
             "zip_char_device.zip",
             patch_zip_mode(zip(&[ZipEntry::File("pkg/tty", b"")]), 0o020644),
