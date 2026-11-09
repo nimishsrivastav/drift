@@ -304,7 +304,7 @@ no sample is ever extracted on the host.
 
 ### M3 — Safe unpacker + tree/tarball diff (week 3)
 - [x] `crates/safe-unpack` with all limits from §3, plus `tests/attacks/` cases for each attack
-- [ ] `cargo-fuzz` target for the unpacker, run ≥30 min with no crashes
+- [x] `cargo-fuzz` target for the unpacker, run ≥30 min with no crashes
 - [x] `static-rs`: file-tree diff + `package.json` scripts diff → findings
 - [x] `static-rs`: tarball-vs-repo diff with the build-output allowlist → findings
 - [x] `static-rs` serves `Analyze` over gRPC; the orchestrator calls it
