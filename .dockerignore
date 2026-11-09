@@ -6,6 +6,7 @@
 !Cargo.toml
 !analyzers/
 !crates/
+!deploy/fixture-registry/
 !eval/pyproject.toml
 !eval/src/
 !gen/

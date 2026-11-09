@@ -14,6 +14,7 @@ build: build-go build-rust build-python
 
 build-go:
     go build ./orchestrator/... ./analyzers/meta-go/... ./gen/go/...
+    cd deploy/fixture-registry && GOWORK=off go build ./...
 
 build-rust:
     cargo build --workspace --locked
@@ -25,6 +26,7 @@ test: test-go test-rust test-python test-hooks
 
 test-go:
     go test ./orchestrator/... ./analyzers/meta-go/...
+    cd deploy/fixture-registry && GOWORK=off go test ./...
 
 test-rust:
     cargo test --workspace --locked
@@ -50,9 +52,10 @@ proto-breaking ref="main":
     fi
 
 lint-go:
-    test -z "$(gofmt -l orchestrator analyzers)"
+    test -z "$(gofmt -l orchestrator analyzers deploy/fixture-registry)"
     cd orchestrator && golangci-lint run ./...
     cd analyzers/meta-go && golangci-lint run ./...
+    cd deploy/fixture-registry && GOWORK=off golangci-lint run ./...
 
 lint-rust:
     cargo fmt --all --check
@@ -76,15 +79,28 @@ up:
     {{ compose }} up --build --detach
     @echo "Orchestrator log: just logs"
 
+# Stops everything, including the fixture registry, and deletes the volumes.
 down:
-    {{ compose }} down --volumes
+    {{ compose }} --profile fixtures down --volumes
 
 logs service="orchestrator":
     {{ compose }} logs {{ service }}
 
 # Run the CLI in the orchestrator container: just drift analyze npm chalk --from 5.3.0 --to 5.4.0
+# The analyzers it calls are started first if they aren't running.
 [positional-arguments]
 drift *args:
     @# Not run --build: it prints build progress on stdout, mixed into the CLI's JSON.
-    {{ compose }} build orchestrator >&2
-    {{ compose }} run --rm --no-deps --entrypoint /drift orchestrator "$@"
+    {{ compose }} build >&2
+    {{ compose }} run --rm --entrypoint /drift orchestrator "$@"
+
+# Replay the synthetic install-hook incident end to end, served by the fixture registry.
+demo-fixture:
+    {{ compose }} --profile fixtures up --build --detach fixture-registry >&2
+    just drift analyze npm drift-fixture-install-hook --from 1.0.0 --to 1.0.1 --registry http://fixture-registry:8080
+
+# Fuzz the unpacker (needs nightly and cargo-fuzz). The attack archives seed the corpus.
+fuzz seconds="1800":
+    mkdir -p crates/safe-unpack/fuzz/corpus/unpack
+    cd crates/safe-unpack && cargo +nightly fuzz run unpack fuzz/corpus/unpack tests/attacks -- \
+        -max_total_time={{ seconds }} -timeout=10 -rss_limit_mb=2048

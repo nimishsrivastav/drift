@@ -15,10 +15,29 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// Roles. A scorer answers Info like an analyzer but is never sent Analyze.
+const (
+	RoleAnalyzer = "analyzer"
+	RoleScorer   = "scorer"
+)
+
 // Analyzer is one configured analyzer endpoint.
 type Analyzer struct {
 	Name     string `yaml:"name"`
 	Endpoint string `yaml:"endpoint"`
+	// Role is RoleAnalyzer (the default) or RoleScorer.
+	Role string `yaml:"role"`
+}
+
+// Analyzers returns the entries that should be sent Analyze.
+func Analyzers(all []Analyzer) []Analyzer {
+	var out []Analyzer
+	for _, a := range all {
+		if a.Role == RoleAnalyzer {
+			out = append(out, a)
+		}
+	}
+	return out
 }
 
 type config struct {
@@ -51,6 +70,13 @@ func parse(data []byte) ([]Analyzer, error) {
 			return nil, fmt.Errorf("analyzer %q is listed twice", a.Name)
 		}
 		seen[a.Name] = true
+		switch a.Role {
+		case "":
+			cfg.Analyzers[i].Role = RoleAnalyzer
+		case RoleAnalyzer, RoleScorer:
+		default:
+			return nil, fmt.Errorf("analyzer %q: unknown role %q", a.Name, a.Role)
+		}
 	}
 	return cfg.Analyzers, nil
 }

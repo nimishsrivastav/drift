@@ -198,6 +198,16 @@ func (d *DB) AddFindings(ctx context.Context, jobID string, findings []*driftv1.
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	if err := insertFindings(ctx, tx, jobID, findings); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+	return nil
+}
+
+func insertFindings(ctx context.Context, tx *sql.Tx, jobID string, findings []*driftv1.DriftFinding) error {
 	for _, finding := range findings {
 		encoded, err := marshal(finding)
 		if err != nil {
@@ -211,9 +221,6 @@ func (d *DB) AddFindings(ctx context.Context, jobID string, findings []*driftv1.
 		if err != nil {
 			return fmt.Errorf("insert finding: %w", err)
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit: %w", err)
 	}
 	return nil
 }

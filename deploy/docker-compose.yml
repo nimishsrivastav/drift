@@ -35,6 +35,13 @@ services:
     build:
       context: ..
       dockerfile: crates/static-rs/Dockerfile
+    environment:
+      DRIFT_ARTIFACTS_ROOT: /artifacts
+      DRIFT_TMP_DIR: /tmp
+      DRIFT_MAX_CONCURRENT: "2"
+    # Each analysis unpacks two versions here, at most 512 MiB each, and two run at once:
+    # 2 GiB at worst, plus room for directory overhead. tmpfs only uses memory it fills.
+    tmpfs: ["/tmp:size=2304m,mode=1777"]
     volumes:
       - artifacts:/artifacts:ro
 
@@ -45,6 +52,19 @@ services:
       dockerfile: crates/trace-rs/Dockerfile
     volumes:
       - artifacts:/artifacts:ro
+
+  # Serves the synthetic fixtures as an npm registry for `just demo-fixture`. Off by default.
+  fixture-registry:
+    <<: *hardening
+    profiles: [fixtures]
+    build:
+      context: ..
+      dockerfile: deploy/fixture-registry/Dockerfile
+    environment:
+      FIXTURES_DIR: /fixtures/npm
+      BASE_URL: http://fixture-registry:8080
+    volumes:
+      - ../fixtures:/fixtures:ro
 
   scorer:
     <<: *hardening

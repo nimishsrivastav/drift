@@ -7,16 +7,19 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"unicode"
 
 	driftv1 "github.com/nimishsrivastav/drift/gen/go/drift/v1"
+	analyzepkg "github.com/nimishsrivastav/drift/orchestrator/internal/analyze"
 	"github.com/nimishsrivastav/drift/orchestrator/internal/db"
 	"github.com/nimishsrivastav/drift/orchestrator/internal/ingest"
 	"github.com/nimishsrivastav/drift/orchestrator/internal/ingest/npm"
 	"github.com/nimishsrivastav/drift/orchestrator/internal/jobs"
+	"github.com/nimishsrivastav/drift/orchestrator/internal/registry"
 	"github.com/nimishsrivastav/drift/orchestrator/internal/repo"
 	"github.com/nimishsrivastav/drift/orchestrator/internal/store"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -26,8 +29,9 @@ const (
 	exitOK       = 0
 	exitFailed   = 1
 	exitUsage    = 2
-	usageAnalyze = "usage: drift analyze <ecosystem> <package> [--from X] [--to Y] [--registry URL] [--data-dir DIR]"
-	usageJob     = "usage: drift job <id> [--data-dir DIR]"
+	usageAnalyze = "usage: drift analyze <ecosystem> <package> [--from X] [--to Y] [--registry URL] [--data-dir DIR]\n" +
+		"                     [--analyzers FILE] [--analyzer-timeout DURATION] [--no-analyze]"
+	usageJob = "usage: drift job <id> [--data-dir DIR]"
 )
 
 // paths is where one data directory keeps things. Analyzers get the tarballs and repos
@@ -92,8 +96,12 @@ func analyze(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	flags.Usage = func() { _, _ = fmt.Fprintln(stderr, usageAnalyze) }
 	from := flags.String("from", "", "old version or dist-tag (default: the release before --to)")
 	to := flags.String("to", "", "new version or dist-tag (default: latest)")
-	registry := flags.String("registry", npm.DefaultRegistry, "npm registry URL")
+	registryURL := flags.String("registry", npm.DefaultRegistry, "npm registry URL")
 	dataDir := flags.String("data-dir", "", "data directory (default: $DRIFT_DATA_DIR or ~/.local/share/drift)")
+	analyzersConfig := flags.String("analyzers", os.Getenv("DRIFT_ANALYZERS_CONFIG"),
+		"analyzer config (default: $DRIFT_ANALYZERS_CONFIG); without one, the job is only ingested")
+	timeout := flags.Duration("analyzer-timeout", analyzepkg.DefaultTimeout, "time limit for each analyzer")
+	noAnalyze := flags.Bool("no-analyze", false, "only ingest")
 
 	positional, err := parseInterleaved(flags, args)
 	if errors.Is(err, flag.ErrHelp) {
@@ -112,14 +120,36 @@ func analyze(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return exitUsage
 	}
 
-	service, closeService, err := newService(ctx, *dataDir, *registry)
+	service, closeService, err := newService(ctx, *dataDir, *registryURL)
 	if err != nil {
 		printError(stderr, err)
 		return exitFailed
 	}
 	defer closeService()
 
+	if !*noAnalyze {
+		if *analyzersConfig == "" {
+			slog.WarnContext(ctx, "no analyzer config (--analyzers or $DRIFT_ANALYZERS_CONFIG); the job is only ingested")
+		} else {
+			configured, err := registry.Load(*analyzersConfig)
+			if err != nil {
+				printError(stderr, err)
+				return exitFailed
+			}
+			runner, closeRunner, err := analyzepkg.Dial(configured, *timeout)
+			if err != nil {
+				printError(stderr, err)
+				return exitFailed
+			}
+			defer closeRunner()
+			service.Analyzers = runner
+		}
+	}
+
 	job, err := service.Ingest(ctx, jobs.Request{Ecosystem: ecosystem, Package: positional[1], From: *from, To: *to})
+	if err == nil && service.Analyzers != nil {
+		job, err = service.Analyze(ctx, job.ID)
+	}
 	if err != nil {
 		if job != nil {
 			printError(stderr, fmt.Errorf("job %s failed: %w", job.ID, err))
@@ -128,7 +158,7 @@ func analyze(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		return exitFailed
 	}
-	if err := printJob(stdout, job); err != nil {
+	if err := printJob(ctx, stdout, service.DB, job); err != nil {
 		printError(stderr, err)
 		return exitFailed
 	}
@@ -170,7 +200,7 @@ func showJob(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		printError(stderr, err)
 		return exitFailed
 	}
-	if err := printJob(stdout, job); err != nil {
+	if err := printJob(ctx, stdout, database, job); err != nil {
 		printError(stderr, err)
 		return exitFailed
 	}
@@ -208,19 +238,21 @@ func newService(ctx context.Context, dataDir, registry string) (*jobs.Service, f
 }
 
 type jobOutput struct {
-	JobID       string          `json:"job_id"`
-	ParentJobID string          `json:"parent_job_id,omitempty"`
-	Depth       uint32          `json:"depth"`
-	Ecosystem   string          `json:"ecosystem"`
-	Package     string          `json:"package"`
-	Status      db.Status       `json:"status"`
-	Error       string          `json:"error,omitempty"`
-	Pair        json.RawMessage `json:"pair,omitempty"`
+	JobID       string           `json:"job_id"`
+	ParentJobID string           `json:"parent_job_id,omitempty"`
+	Depth       uint32           `json:"depth"`
+	Ecosystem   string           `json:"ecosystem"`
+	Package     string           `json:"package"`
+	Status      db.Status        `json:"status"`
+	Error       string           `json:"error,omitempty"`
+	Pair        json.RawMessage  `json:"pair,omitempty"`
+	Analyzers   []db.AnalyzerRun `json:"analyzers,omitempty"`
+	Findings    json.RawMessage  `json:"findings,omitempty"`
 }
 
-// printJob writes one job as JSON. Unusual characters in registry data arrive escaped, so
-// they can't act on a terminal.
-func printJob(w io.Writer, job *db.Job) error {
+// printJob writes one job, with its analyzer runs and findings, as JSON. Unusual characters in
+// registry data and findings arrive escaped, so they can't act on a terminal.
+func printJob(ctx context.Context, w io.Writer, database *db.DB, job *db.Job) error {
 	output := jobOutput{
 		JobID:       job.ID,
 		ParentJobID: job.ParentJobID,
@@ -236,6 +268,22 @@ func printJob(w io.Writer, job *db.Job) error {
 			return fmt.Errorf("encode artifact pair: %w", err)
 		}
 		output.Pair = encoded
+	}
+	runs, err := database.AnalyzerRuns(ctx, job.ID)
+	if err != nil {
+		return err
+	}
+	output.Analyzers = runs
+	findings, err := database.Findings(ctx, job.ID)
+	if err != nil {
+		return err
+	}
+	if len(findings) > 0 {
+		encoded, err := marshalFindings(findings)
+		if err != nil {
+			return err
+		}
+		output.Findings = encoded
 	}
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
@@ -255,4 +303,20 @@ func printError(w io.Writer, err error) {
 		return r
 	}, err.Error())
 	_, _ = fmt.Fprintln(w, "drift:", clean)
+}
+
+func marshalFindings(findings []*driftv1.DriftFinding) (json.RawMessage, error) {
+	parts := make([]json.RawMessage, 0, len(findings))
+	for _, f := range findings {
+		encoded, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(f)
+		if err != nil {
+			return nil, fmt.Errorf("encode finding: %w", err)
+		}
+		parts = append(parts, encoded)
+	}
+	encoded, err := json.Marshal(parts)
+	if err != nil {
+		return nil, fmt.Errorf("encode findings: %w", err)
+	}
+	return encoded, nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -20,6 +22,7 @@ import (
 	driftv1 "github.com/nimishsrivastav/drift/gen/go/drift/v1"
 	"github.com/nimishsrivastav/drift/orchestrator/internal/db"
 	"github.com/nimishsrivastav/drift/orchestrator/internal/repo"
+	"google.golang.org/grpc"
 )
 
 type output struct {
@@ -80,6 +83,7 @@ func fakeRegistry(t *testing.T, tamper bool) *httptest.Server {
 }
 
 func TestAnalyze(t *testing.T) {
+	t.Setenv("DRIFT_ANALYZERS_CONFIG", "")
 	srv := fakeRegistry(t, false)
 	tests := []struct {
 		name    string
@@ -168,6 +172,7 @@ func TestAnalyze(t *testing.T) {
 }
 
 func TestAnalyzeFailuresAreRecorded(t *testing.T) {
+	t.Setenv("DRIFT_ANALYZERS_CONFIG", "")
 	tests := []struct {
 		name       string
 		tamper     bool
@@ -326,8 +331,13 @@ func TestPrintJobEscapesControlCharacters(t *testing.T) {
 			New:   &driftv1.PackageVersion{Name: hostile, Version: hostile},
 		},
 	}
+	database, err := db.Open(t.Context(), filepath.Join(t.TempDir(), "drift.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = database.Close() }()
 	var stdout bytes.Buffer
-	if err := printJob(&stdout, job); err != nil {
+	if err := printJob(t.Context(), &stdout, database, job); err != nil {
 		t.Fatal(err)
 	}
 	if bytes.ContainsRune(stdout.Bytes(), 0x1b) {
@@ -339,5 +349,85 @@ func TestPrintJobEscapesControlCharacters(t *testing.T) {
 	}
 	if got.Package != hostile || got.Pair.New.Version != hostile {
 		t.Errorf("escaped values did not round-trip: %+v", got)
+	}
+}
+
+type fakeAnalyzer struct {
+	driftv1.UnimplementedAnalyzerServer
+	got chan *driftv1.ArtifactPair
+}
+
+func (f *fakeAnalyzer) Analyze(_ context.Context, pair *driftv1.ArtifactPair) (*driftv1.AnalyzeResponse, error) {
+	f.got <- pair
+	return &driftv1.AnalyzeResponse{
+		Findings: []*driftv1.DriftFinding{{
+			Kind:       "install_hook_added",
+			Capability: driftv1.Capability_CAPABILITY_INSTALL_HOOK,
+			Context:    driftv1.ExecContext_EXEC_CONTEXT_INSTALL,
+			Confidence: 0.9,
+		}},
+		Errors: []string{"tarball-vs-repo diff skipped"},
+	}, nil
+}
+
+func TestAnalyzeCallsAnalyzers(t *testing.T) {
+	srv := fakeRegistry(t, false)
+	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fake := &fakeAnalyzer{got: make(chan *driftv1.ArtifactPair, 1)}
+	server := grpc.NewServer()
+	driftv1.RegisterAnalyzerServer(server, fake)
+	go func() { _ = server.Serve(listener) }()
+	t.Cleanup(server.Stop)
+
+	// The scorer's endpoint is unreachable: it must never be sent Analyze.
+	config := filepath.Join(t.TempDir(), "analyzers.yaml")
+	body := fmt.Sprintf("analyzers:\n  - {name: fake, endpoint: '%s'}\n  - {name: scorer, endpoint: '127.0.0.1:1', role: scorer}\n", listener.Addr())
+	if err := os.WriteFile(config, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	data := t.TempDir()
+	var stdout, stderr bytes.Buffer
+	args := []string{"npm", "demo", "--registry", srv.URL, "--data-dir", data, "--analyzers", config, "--analyzer-timeout", "10s"}
+	if code := analyze(t.Context(), args, &stdout, &stderr); code != exitOK {
+		t.Fatalf("code = %d, stderr = %s", code, stderr.String())
+	}
+	var got struct {
+		JobID     string           `json:"job_id"`
+		Status    string           `json:"status"`
+		Analyzers []db.AnalyzerRun `json:"analyzers"`
+		Findings  []struct {
+			Analyzer   string  `json:"analyzer"`
+			Kind       string  `json:"kind"`
+			Capability string  `json:"capability"`
+			Confidence float64 `json:"confidence"`
+		} `json:"findings"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+		t.Fatalf("stdout is not JSON: %v\n%s", err, stdout.String())
+	}
+	if got.Status != "done" {
+		t.Errorf("status = %s, want done", got.Status)
+	}
+	if pair := <-fake.got; pair.GetJobId() != got.JobID || pair.GetNew().GetTarballPath() == "" {
+		t.Errorf("analyzer got %v", pair)
+	}
+	if len(got.Analyzers) != 1 || got.Analyzers[0].Analyzer != "fake" || got.Analyzers[0].Status != db.RunOK ||
+		got.Analyzers[0].Notes[0] != "tarball-vs-repo diff skipped" {
+		t.Errorf("analyzers = %+v", got.Analyzers)
+	}
+	if len(got.Findings) != 1 || got.Findings[0].Analyzer != "fake" || got.Findings[0].Capability != "CAPABILITY_INSTALL_HOOK" {
+		t.Errorf("findings = %+v", got.Findings)
+	}
+
+	var shown bytes.Buffer
+	if code := showJob(t.Context(), []string{got.JobID, "--data-dir", data}, &shown, &stderr); code != exitOK {
+		t.Fatalf("job: code = %d, stderr = %s", code, stderr.String())
+	}
+	if shown.String() != stdout.String() {
+		t.Errorf("job output differs:\n%s\nvs\n%s", shown.String(), stdout.String())
 	}
 }

@@ -7,6 +7,15 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+flate2 = { version = "1.1.11", default-features = false, features = ["rust_backend"] }
+tar = { version = "0.4.46", default-features = false }
+tempfile = "3.27.0"
+thiserror.workspace = true
+zip = { version = "9.4.1", default-features = false, features = ["deflate-flate2"] }
+
+[dev-dependencies]
+flate2 = { version = "1.1.11", default-features = false, features = ["rust_backend"] }
+zip = { version = "9.4.1", default-features = false, features = ["deflate-flate2"] }
 
 [lints]
 workspace = true

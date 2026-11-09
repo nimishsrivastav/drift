@@ -267,3 +267,55 @@ func TestIngestUnsupportedEcosystem(t *testing.T) {
 		t.Fatalf("job = %v, err = %v", job, err)
 	}
 }
+
+type fakeAnalyzers struct {
+	got      *driftv1.ArtifactPair
+	findings []*driftv1.DriftFinding
+	runs     []db.AnalyzerRun
+}
+
+func (f *fakeAnalyzers) Run(_ context.Context, pair *driftv1.ArtifactPair) ([]*driftv1.DriftFinding, []db.AnalyzerRun) {
+	f.got = pair
+	return f.findings, f.runs
+}
+
+func TestAnalyzeStoresFindings(t *testing.T) {
+	adapter := &fakeAdapter{resolution: ingest.Resolution{New: version("1.0.0", "")}}
+	s := newService(t, adapter, &fakeRepos{})
+	analyzers := &fakeAnalyzers{
+		findings: []*driftv1.DriftFinding{{Analyzer: "static-rs", Kind: "install_hook_added", Confidence: 0.9}},
+		runs:     []db.AnalyzerRun{{Analyzer: "static-rs", Status: db.RunOK, Findings: 1}},
+	}
+	s.Analyzers = analyzers
+
+	ingested, err := s.Ingest(t.Context(), Request{Ecosystem: npm, Package: "demo"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, err := s.Analyze(t.Context(), ingested.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.Status != db.StatusDone {
+		t.Errorf("status = %s, want done", job.Status)
+	}
+	if analyzers.got.GetJobId() != job.ID || analyzers.got.GetNew().GetVersion() != "1.0.0" {
+		t.Errorf("analyzers got %v", analyzers.got)
+	}
+	findings, err := s.DB.Findings(t.Context(), job.ID)
+	if err != nil || len(findings) != 1 {
+		t.Errorf("findings = %v, %v", findings, err)
+	}
+
+	// A job can't be analyzed twice.
+	if _, err := s.Analyze(t.Context(), job.ID); err == nil || !strings.Contains(err.Error(), "not ingested") {
+		t.Errorf("second Analyze: err = %v", err)
+	}
+}
+
+func TestAnalyzeWithoutAnalyzers(t *testing.T) {
+	s := newService(t, &fakeAdapter{}, &fakeRepos{})
+	if _, err := s.Analyze(t.Context(), "missing"); err == nil {
+		t.Error("expected an error")
+	}
+}
