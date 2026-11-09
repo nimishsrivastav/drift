@@ -54,6 +54,15 @@ func (s *Service) Ingest(ctx context.Context, req Request) (*db.Job, error) {
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrUnsupportedEcosystem, req.Ecosystem)
 	}
+	return s.ingest(ctx, adapter, req, func(ctx context.Context) (ingest.Resolution, error) {
+		return adapter.Resolve(ctx, req.Package, req.From, req.To)
+	})
+}
+
+// ingest creates a job and ingests the versions resolve picks.
+func (s *Service) ingest(ctx context.Context, adapter ingest.Adapter, req Request,
+	resolve func(context.Context) (ingest.Resolution, error),
+) (*db.Job, error) {
 	job, err := s.DB.CreateJob(ctx, db.NewJob{
 		ParentJobID:   req.ParentJobID,
 		Ecosystem:     req.Ecosystem,
@@ -65,7 +74,7 @@ func (s *Service) Ingest(ctx context.Context, req Request) (*db.Job, error) {
 		return nil, err
 	}
 
-	if err := s.run(ctx, adapter, job, req); err != nil {
+	if err := s.run(ctx, adapter, job, resolve); err != nil {
 		// The reason must be recorded even if ctx is why the job failed.
 		recordCtx := context.WithoutCancel(ctx)
 		if failErr := s.DB.FailJob(recordCtx, job.ID, err.Error()); failErr != nil {
@@ -96,6 +105,19 @@ func (s *Service) Analyze(ctx context.Context, jobID string) (*db.Job, error) {
 		return job, err
 	}
 	findings, runs := s.Analyzers.Run(ctx, job.Pair)
+	rolledUp, expansion, err := s.expand(ctx, job, findings)
+	if err != nil {
+		// Only cancellation ends up here; a dependency that fails is a note.
+		recordCtx := context.WithoutCancel(ctx)
+		if failErr := s.DB.FailJob(recordCtx, job.ID, err.Error()); failErr != nil {
+			return job, errors.Join(err, failErr)
+		}
+		return job, err
+	}
+	findings = append(findings, rolledUp...)
+	if expansion != nil {
+		runs = append(runs, *expansion)
+	}
 	if err := s.DB.CompleteAnalysis(ctx, job.ID, findings, runs); err != nil {
 		recordCtx := context.WithoutCancel(ctx)
 		if failErr := s.DB.FailJob(recordCtx, job.ID, err.Error()); failErr != nil {
@@ -106,11 +128,13 @@ func (s *Service) Analyze(ctx context.Context, jobID string) (*db.Job, error) {
 	return s.DB.GetJob(ctx, job.ID)
 }
 
-func (s *Service) run(ctx context.Context, adapter ingest.Adapter, job *db.Job, req Request) error {
+func (s *Service) run(ctx context.Context, adapter ingest.Adapter, job *db.Job,
+	resolve func(context.Context) (ingest.Resolution, error),
+) error {
 	if err := s.DB.SetStatus(ctx, job.ID, db.StatusIngesting); err != nil {
 		return err
 	}
-	resolution, err := adapter.Resolve(ctx, req.Package, req.From, req.To)
+	resolution, err := resolve(ctx)
 	if err != nil {
 		return err
 	}

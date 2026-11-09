@@ -3,8 +3,10 @@ package jobs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	driftv1 "github.com/nimishsrivastav/drift/gen/go/drift/v1"
@@ -21,6 +23,10 @@ type fakeAdapter struct {
 	resolveErr  error
 	downloadErr map[string]error // by version
 	onDownload  func()
+	// deps resolves dependencies by package name, at version 1.0.0 unless listed.
+	deps      map[string]string
+	mu        sync.Mutex
+	downloads []string // name@version
 }
 
 func (f *fakeAdapter) Ecosystem() driftv1.Ecosystem { return npm }
@@ -29,14 +35,28 @@ func (f *fakeAdapter) Resolve(context.Context, string, string, string) (ingest.R
 	return f.resolution, f.resolveErr
 }
 
+func (f *fakeAdapter) ResolveDependency(_ context.Context, name, spec string) (ingest.Version, error) {
+	if strings.HasPrefix(name, "missing") {
+		return ingest.Version{}, fmt.Errorf("%w: %s@%s", ingest.ErrVersionNotFound, name, spec)
+	}
+	v := f.deps[name]
+	if v == "" {
+		v = "1.0.0"
+	}
+	return ingest.Version{Name: name, Version: v}, nil
+}
+
 func (f *fakeAdapter) Download(_ context.Context, v ingest.Version, s *store.Store) (store.Blob, error) {
 	if f.onDownload != nil {
 		f.onDownload()
 	}
+	f.mu.Lock()
+	f.downloads = append(f.downloads, v.Name+"@"+v.Version)
+	f.mu.Unlock()
 	if err := f.downloadErr[v.Version]; err != nil {
 		return store.Blob{}, err
 	}
-	return s.Put(strings.NewReader("tarball of "+v.Version), 1024, nil)
+	return s.Put(strings.NewReader("tarball of "+v.Name+"@"+v.Version), 1024, nil)
 }
 
 type fakeRepos struct {
