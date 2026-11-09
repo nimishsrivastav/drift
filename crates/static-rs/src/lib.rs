@@ -1,16 +1,24 @@
 //! Static capability-drift analysis. Package contents are parsed, never run.
 //!
-//! M3 covers the file-tree diff, the `package.json` install-hook diff and the tarball-vs-repo
-//! diff. Capability extraction and the dependency diff arrive in M4.
+//! Per pair: the file-tree diff, the `package.json` install-hook and dependency diffs, the
+//! tarball-vs-repo diff, and the capability diff, with each capability placed in the context
+//! (install, import or call) that reaches it.
 
 pub mod artifact;
+pub mod capabilities;
+pub mod capability_diff;
+pub mod context;
 pub mod depgraph;
 pub mod findings;
 pub mod npm_manifest;
+pub mod obfuscation;
 pub mod tarball_vs_repo;
 pub mod tree_diff;
 
+use std::collections::BTreeSet;
 use std::time::Instant;
+
+use capability_diff::FactCache;
 
 use drift_proto::v1::{
     AnalyzeResponse, ArtifactPair, Capability, Ecosystem, ExecContext, PackageVersion,
@@ -105,9 +113,49 @@ fn run(pair: &ArtifactPair, config: &Config, collector: &mut Collector) {
         pair.old.is_none(),
         collector,
     );
-    let install_files = npm_manifest::referenced_files(&new_hooks, &new_tree);
+    // Files that changed are parsed first, so padding can't push them out of the budget.
+    let changed: BTreeSet<String> = new_tree
+        .files
+        .iter()
+        .filter(|(path, info)| {
+            old_tree
+                .as_ref()
+                .and_then(|o| o.files.get(*path))
+                .is_none_or(|o| o.sha256 != info.sha256)
+        })
+        .map(|(path, _)| path.clone())
+        .collect();
+    let mut cache = FactCache::new(capability_diff::PARSE_BUDGET);
+    let new_code = capability_diff::analyze_version(
+        &new_tree,
+        new_manifest.as_ref(),
+        &new_hooks,
+        &changed,
+        &mut cache,
+    );
+    let old_code = old_tree
+        .as_ref()
+        .zip(old_hooks.as_ref())
+        .map(|(tree, hooks)| {
+            capability_diff::analyze_version(
+                tree,
+                old_manifest.as_ref(),
+                hooks,
+                &changed,
+                &mut cache,
+            )
+        });
+    // Every file an install hook runs, directly or through what it imports.
+    let install_files: BTreeSet<String> = new_code.reach.install.keys().cloned().collect();
 
     tree_diff::diff(old_tree.as_ref(), &new_tree, &install_files, collector);
+    capability_diff::diff(
+        old_tree.as_ref(),
+        old_code.as_ref(),
+        &new_tree,
+        &new_code,
+        collector,
+    );
 
     match repo_for(pair, config, collector) {
         Some(repo) => tarball_vs_repo::diff(

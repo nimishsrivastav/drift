@@ -259,7 +259,16 @@ fn new_package_mode_reports_absolute_install_behavior() {
         None,
     );
     let response = analyze(&pair(None, new), &a.config());
-    assert_eq!(kinds(&response), ["file_added", "install_hook_added"]);
+    // M4: the file's own capabilities, at install time, are reported too.
+    assert_eq!(
+        kinds(&response),
+        [
+            "capability_added",
+            "capability_added",
+            "file_added",
+            "install_hook_added"
+        ]
+    );
     let file = response
         .findings
         .iter()

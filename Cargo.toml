@@ -22,3 +22,13 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"
+
+# tree-sitter's C parser is slow unoptimized, which makes debug-build tests crawl on large inputs.
+[profile.dev.package.tree-sitter]
+opt-level = 3
+
+[profile.dev.package.tree-sitter-javascript]
+opt-level = 3
+
+[profile.dev.package.tree-sitter-typescript]
+opt-level = 3

