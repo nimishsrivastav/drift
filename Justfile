@@ -79,8 +79,9 @@ up:
     {{ compose }} up --build --detach
     @echo "Orchestrator log: just logs"
 
+# Stops everything, including the fixture registry, and deletes the volumes.
 down:
-    {{ compose }} down --volumes
+    {{ compose }} --profile fixtures down --volumes
 
 logs service="orchestrator":
     {{ compose }} logs {{ service }}
