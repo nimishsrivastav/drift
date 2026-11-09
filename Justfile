@@ -88,3 +88,9 @@ drift *args:
     @# Not run --build: it prints build progress on stdout, mixed into the CLI's JSON.
     {{ compose }} build orchestrator >&2
     {{ compose }} run --rm --no-deps --entrypoint /drift orchestrator "$@"
+
+# Fuzz the unpacker (needs nightly and cargo-fuzz). The attack archives seed the corpus.
+fuzz seconds="1800":
+    mkdir -p crates/safe-unpack/fuzz/corpus/unpack
+    cd crates/safe-unpack && cargo +nightly fuzz run unpack fuzz/corpus/unpack tests/attacks -- \
+        -max_total_time={{ seconds }} -timeout=10 -rss_limit_mb=2048
