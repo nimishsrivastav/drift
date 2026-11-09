@@ -6,5 +6,7 @@ analyzers:
     endpoint: static-rs:50051
   - name: trace-rs
     endpoint: trace-rs:50051
+  # Discovered at startup like the others, but never sent Analyze.
   - name: scorer
     endpoint: scorer:50051
+    role: scorer

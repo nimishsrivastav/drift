@@ -1,5 +1,6 @@
-// Package jobs runs the orchestrator's job flow. So far that is ingest: resolve the versions,
-// fetch their artifacts and source, and store the resulting ArtifactPair.
+// Package jobs runs the orchestrator's job flow: ingest (resolve the versions, fetch their
+// artifacts and source, and store the resulting ArtifactPair), then analysis (send the pair to
+// every analyzer and store what they find). Scoring arrives in M7.
 package jobs
 
 import (
@@ -23,12 +24,18 @@ type RepoResolver interface {
 	Resolve(ctx context.Context, rawURL, name, version string) (repo.Checkout, error)
 }
 
+// Analyzers runs the configured analyzers on a pair. analyze.Runner implements it.
+type Analyzers interface {
+	Run(ctx context.Context, pair *driftv1.ArtifactPair) ([]*driftv1.DriftFinding, []db.AnalyzerRun)
+}
+
 // Service runs jobs.
 type Service struct {
-	DB       *db.DB
-	Store    *store.Store
-	Repos    RepoResolver
-	Adapters map[driftv1.Ecosystem]ingest.Adapter
+	DB        *db.DB
+	Store     *store.Store
+	Repos     RepoResolver
+	Adapters  map[driftv1.Ecosystem]ingest.Adapter
+	Analyzers Analyzers
 }
 
 // Request asks for one package to be ingested. Empty From and To mean the adapter's defaults.
@@ -66,6 +73,33 @@ func (s *Service) Ingest(ctx context.Context, req Request) (*db.Job, error) {
 		}
 		if stored, getErr := s.DB.GetJob(recordCtx, job.ID); getErr == nil {
 			job = stored
+		}
+		return job, err
+	}
+	return s.DB.GetJob(ctx, job.ID)
+}
+
+// Analyze sends an ingested job's pair to the analyzers and stores their findings. A failing
+// analyzer is recorded in its run and doesn't fail the job.
+func (s *Service) Analyze(ctx context.Context, jobID string) (*db.Job, error) {
+	if s.Analyzers == nil {
+		return nil, errors.New("no analyzers configured")
+	}
+	job, err := s.DB.GetJob(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	if job.Status != db.StatusIngested || job.Pair == nil {
+		return job, fmt.Errorf("job %s is %s, not ingested", job.ID, job.Status)
+	}
+	if err := s.DB.SetStatus(ctx, job.ID, db.StatusAnalyzing); err != nil {
+		return job, err
+	}
+	findings, runs := s.Analyzers.Run(ctx, job.Pair)
+	if err := s.DB.CompleteAnalysis(ctx, job.ID, findings, runs); err != nil {
+		recordCtx := context.WithoutCancel(ctx)
+		if failErr := s.DB.FailJob(recordCtx, job.ID, err.Error()); failErr != nil {
+			return job, errors.Join(err, failErr)
 		}
 		return job, err
 	}

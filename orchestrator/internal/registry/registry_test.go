@@ -25,6 +25,8 @@ func TestParse(t *testing.T) {
 		{name: "missing endpoint", input: "analyzers:\n  - {name: a}\n", wantErr: "required"},
 		{name: "duplicate", input: "analyzers:\n  - {name: a, endpoint: 'a:1'}\n  - {name: a, endpoint: 'b:1'}\n", wantErr: "twice"},
 		{name: "not yaml", input: "analyzers: [", wantErr: "parse"},
+		{name: "scorer role", input: "analyzers:\n  - {name: a, endpoint: 'a:1'}\n  - {name: s, endpoint: 's:1', role: scorer}\n", want: 2},
+		{name: "unknown role", input: "analyzers:\n  - {name: a, endpoint: 'a:1', role: judge}\n", wantErr: "unknown role"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -42,6 +44,17 @@ func TestParse(t *testing.T) {
 				t.Errorf("got %d analyzers, want %d", len(got), tt.want)
 			}
 		})
+	}
+}
+
+func TestAnalyzersLeavesOutTheScorer(t *testing.T) {
+	all, err := parse([]byte("analyzers:\n  - {name: a, endpoint: 'a:1'}\n  - {name: s, endpoint: 's:1', role: scorer}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := Analyzers(all)
+	if len(got) != 1 || got[0].Name != "a" || got[0].Role != RoleAnalyzer {
+		t.Errorf("Analyzers = %+v, want only a", got)
 	}
 }
 
