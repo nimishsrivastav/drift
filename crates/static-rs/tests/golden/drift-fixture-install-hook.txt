@@ -1,0 +1,17 @@
+file_added CAPABILITY_UNSPECIFIED EXEC_CONTEXT_INSTALL confidence=0.80
+  evidence: lib/build.js:0 
+  attrs: run_by_install_hook=true sha256=6472690710e8798140dc53bac5ce074bde35dec4b235a6015f31b7876d957da1 size=653
+file_modified CAPABILITY_UNSPECIFIED EXEC_CONTEXT_UNSPECIFIED confidence=0.20
+  evidence: README.md:0 
+  attrs: old_sha256=a6d681e3455db84b8a328d36e8bffdee9f295a403f076e12c7dff887618b1fed run_by_install_hook=false sha256=aa0b56803bb1e73e06bf1c46e7104a77dba01f5b06d1f9e94952abd78cc55362 size=111
+file_modified CAPABILITY_UNSPECIFIED EXEC_CONTEXT_UNSPECIFIED confidence=0.20
+  evidence: package.json:0 
+  attrs: old_sha256=7bbfe54d87c216bcb33641ba0e66b7d8ba2790f4e5d0e1565b8c77e85b4b206b run_by_install_hook=false sha256=71e4d87f664f14388e1910fb88a70b72c540e6d6442fdf298d0ca3cad45c45f9 size=327
+install_hook_added CAPABILITY_INSTALL_HOOK EXEC_CONTEXT_INSTALL confidence=0.90
+  evidence: package.json:8 "postinstall": "node ./lib/build.js"
+  attrs: hook=postinstall script=node ./lib/build.js
+tarball_only_file CAPABILITY_UNSPECIFIED EXEC_CONTEXT_INSTALL confidence=0.90
+  evidence: lib/build.js:0 
+  attrs: repo_dir=. repo_ref=v1.0.1 run_by_install_hook=true sha256=6472690710e8798140dc53bac5ce074bde35dec4b235a6015f31b7876d957da1
+notes:
+
