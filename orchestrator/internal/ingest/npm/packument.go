@@ -59,6 +59,38 @@ func (p *packument) resolve(name, from, to string) (ingest.Resolution, error) {
 	return res, nil
 }
 
+// resolveDependency picks the version npm would install for a dependency spec, as
+// npm-pick-manifest does: a dist-tag's version, or else the latest tag if it is in the range,
+// or else the highest version in the range.
+func (p *packument) resolveDependency(name, spec string) (ingest.Version, error) {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		spec = "*"
+	}
+	if _, isTag := p.DistTags[spec]; isTag {
+		return p.lookup(name, spec)
+	}
+	versions, err := parseRange(spec)
+	if err != nil {
+		return ingest.Version{}, fmt.Errorf("%w: %s@%s: %w", ingest.ErrVersionNotFound, name, spec, err)
+	}
+	if latest, ok := p.DistTags["latest"]; ok && versions.satisfies(latest) {
+		if _, published := p.Versions[latest]; published {
+			return p.lookup(name, latest)
+		}
+	}
+	best := ""
+	for candidate := range p.Versions {
+		if versions.satisfies(candidate) && (best == "" || semver.Compare("v"+candidate, "v"+best) > 0) {
+			best = candidate
+		}
+	}
+	if best == "" {
+		return ingest.Version{}, fmt.Errorf("%w: no version of %s satisfies %q", ingest.ErrVersionNotFound, name, spec)
+	}
+	return p.lookup(name, best)
+}
+
 // lookup finds a version by exact number or dist-tag.
 func (p *packument) lookup(name, spec string) (ingest.Version, error) {
 	version := spec

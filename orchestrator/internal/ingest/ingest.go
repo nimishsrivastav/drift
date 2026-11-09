@@ -43,6 +43,9 @@ type Adapter interface {
 	// Resolve picks the versions to compare. Empty to means the latest release, and empty
 	// from means the release before to.
 	Resolve(ctx context.Context, name, from, to string) (Resolution, error)
+	// ResolveDependency picks the version a package manager would install for a dependency
+	// declared as name with spec (a range or tag in the registry's own syntax).
+	ResolveDependency(ctx context.Context, name, spec string) (Version, error)
 	// Download fetches a version's artifact into the store, verifying its integrity.
 	Download(ctx context.Context, v Version, s *store.Store) (store.Blob, error)
 }
