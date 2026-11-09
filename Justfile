@@ -94,10 +94,14 @@ drift *args:
     {{ compose }} build >&2
     {{ compose }} run --rm --entrypoint /drift orchestrator "$@"
 
-# Replay the synthetic install-hook incident end to end, served by the fixture registry.
-demo-fixture:
+# Replay a synthetic incident end to end via the fixture registry, e.g. package=drift-fixture-dep-inject.
+demo-fixture package="drift-fixture-install-hook":
     {{ compose }} --profile fixtures up --build --detach fixture-registry >&2
-    just drift analyze npm drift-fixture-install-hook --from 1.0.0 --to 1.0.1 --registry http://fixture-registry:8080
+    just drift analyze npm {{ package }} --from 1.0.0 --to 1.0.1 --registry http://fixture-registry:8080
+
+# Check static-rs's time budget (under 5 s for a package under 5 MB) in a release build.
+bench-static:
+    cargo test --release --locked -p static-rs --test golden typical_package -- --ignored --nocapture
 
 # Fuzz the unpacker (needs nightly and cargo-fuzz). The attack archives seed the corpus.
 fuzz seconds="1800":

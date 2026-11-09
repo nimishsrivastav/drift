@@ -1,0 +1,7 @@
+{
+  "name": "drift-fixture-decode-eval",
+  "version": "1.0.1",
+  "description": "SYNTHETIC drift test fixture, malicious-update version. Not real malware; targets only the sinkhole.",
+  "main": "index.js",
+  "license": "Apache-2.0"
+}

@@ -18,7 +18,7 @@ use tree_sitter::{Language, Node, ParseOptions, Parser, TreeCursor};
 use crate::obfuscation;
 
 /// Files larger than this are not parsed; the analysis says so in a note.
-pub const MAX_FILE_BYTES: u64 = 4 << 20;
+pub const MAX_FILE_BYTES: u64 = 8 << 20;
 /// How long one file may take to parse.
 const PARSE_DEADLINE: Duration = Duration::from_secs(3);
 /// How deep name resolution follows a member chain or a constant expression.
@@ -68,6 +68,8 @@ pub struct Use {
     pub line: u32,
     pub snippet: String,
     pub top_level: bool,
+    /// Only a `require`/`import` of a capability module, not a call into it.
+    pub load_only: bool,
 }
 
 /// What one file can do, independent of how the package reaches it.
@@ -90,7 +92,11 @@ fn language(grammar: Grammar) -> Language {
 
 /// Parses one file and lists what it imports and what capabilities it uses.
 pub fn extract(grammar: Grammar, source: &[u8]) -> FileFacts {
-    let mut parser = Parser::new();
+    extract_with(&mut Parser::new(), grammar, source)
+}
+
+/// `extract` with a parser to reuse across files.
+pub fn extract_with(parser: &mut Parser, grammar: Grammar, source: &[u8]) -> FileFacts {
     if parser.set_language(&language(grammar)).is_err() {
         return FileFacts {
             problem: Some("grammar unavailable".into()),
@@ -98,8 +104,11 @@ pub fn extract(grammar: Grammar, source: &[u8]) -> FileFacts {
         };
     }
     let started = Instant::now();
+    let mut ticks: u32 = 0;
     let mut over_time = |_: &tree_sitter::ParseState| {
-        if started.elapsed() > PARSE_DEADLINE {
+        // The callback runs often; reading the clock every time is a measurable cost.
+        ticks = ticks.wrapping_add(1);
+        if ticks.is_multiple_of(64) && started.elapsed() > PARSE_DEADLINE {
             ControlFlow::Break(())
         } else {
             ControlFlow::Continue(())
@@ -227,20 +236,28 @@ impl<'s> File<'s> {
 
     /// The source line holding the node, or the node itself if the line is long (minified).
     pub fn snippet(&self, node: Node) -> String {
+        const MAX_LINE: usize = 200;
+        // Look no further than a short line could reach: on a minified file, scanning to the
+        // line's ends for every use would be quadratic.
         let start = node.start_byte();
-        let line_start = self.source[..start]
+        let window_start = start.saturating_sub(MAX_LINE + 1);
+        let window_end = (start + MAX_LINE + 1).min(self.source.len());
+        let line_start = self.source[window_start..start]
             .iter()
             .rposition(|&b| b == b'\n')
-            .map_or(0, |i| i + 1);
-        let line_end = self.source[start..]
+            .map(|i| window_start + i + 1)
+            .or((window_start == 0).then_some(0));
+        let line_end = self.source[start..window_end]
             .iter()
             .position(|&b| b == b'\n')
-            .map_or(self.source.len(), |i| start + i);
-        let line = &self.source[line_start..line_end];
-        let text = if line.len() <= 200 {
-            line
-        } else {
-            &self.source[node.byte_range()][..node.byte_range().len().min(160)]
+            .map(|i| start + i)
+            .or((window_end == self.source.len()).then_some(window_end));
+        let text = match (line_start, line_end) {
+            (Some(a), Some(b)) if b - a <= MAX_LINE => &self.source[a..b],
+            _ => {
+                let range = node.byte_range();
+                &self.source[range.start..range.end.min(range.start + 160)]
+            }
         };
         String::from_utf8_lossy(text).trim().to_owned()
     }
@@ -334,7 +351,7 @@ impl<'s> File<'s> {
             if let Some(cap) = module_capability(&module) {
                 facts
                     .uses
-                    .push(self.use_at(*statement, cap, "", module.clone(), false));
+                    .push(self.load_at(*statement, cap, module.clone()));
             }
         }
 
@@ -441,6 +458,17 @@ impl<'s> File<'s> {
             line: Self::line(node),
             snippet: self.snippet(node),
             top_level,
+            load_only: false,
+        }
+    }
+
+    /// Loading a capability module. The capability is used wherever the module is called,
+    /// which may not be resolvable, so the load counts, but only as call-time and as the
+    /// evidence of last resort.
+    fn load_at(&self, node: Node, capability: Capability, module: String) -> Use {
+        Use {
+            load_only: true,
+            ..self.use_at(node, capability, "", module, false)
         }
     }
 
@@ -472,8 +500,7 @@ impl<'s> File<'s> {
                             top,
                         ));
                     } else if let Some(cap) = module_capability(&module) {
-                        // The use is wherever the module is called; loading it is a weak sign.
-                        facts.uses.push(self.use_at(call, cap, "", module, false));
+                        facts.uses.push(self.load_at(call, cap, module));
                     }
                 }
                 None if first_arg.is_some() => facts.uses.push(self.use_at(

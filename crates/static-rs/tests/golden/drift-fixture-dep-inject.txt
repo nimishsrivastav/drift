@@ -1,0 +1,9 @@
+dependency_added CAPABILITY_UNSPECIFIED EXEC_CONTEXT_INSTALL confidence=0.50
+  evidence: package.json:7 "drift-fixture-evil-dep": "^1.0.0"
+  attrs: bundled=false dependency=drift-fixture-evil-dep package=drift-fixture-evil-dep range=^1.0.0 section=dependencies source=registry spec=^1.0.0
+file_modified CAPABILITY_UNSPECIFIED EXEC_CONTEXT_UNSPECIFIED confidence=0.20
+  evidence: package.json:0 
+  attrs: old_sha256=83b8d2a4d77912ea53cea7abd36d1e82d495596d985e10fe463ed721cda769f5 run_by_install_hook=false sha256=c17fc347d1b7e98636aa0c12b680d3f1103860b4df22df238835957d5c7ab536 size=310
+notes:
+  tarball-vs-repo diff skipped: no source checkout for either version
+

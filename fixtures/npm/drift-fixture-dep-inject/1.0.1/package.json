@@ -1,0 +1,10 @@
+{
+  "name": "drift-fixture-dep-inject",
+  "version": "1.0.1",
+  "description": "SYNTHETIC drift test fixture, malicious-update version: adds a dependency with an install hook. Not real malware.",
+  "main": "index.js",
+  "dependencies": {
+    "drift-fixture-evil-dep": "^1.0.0"
+  },
+  "license": "Apache-2.0"
+}

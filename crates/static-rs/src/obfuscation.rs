@@ -55,6 +55,7 @@ pub fn file_signals(source: &[u8], facts: &mut FileFacts) {
             line: u32::try_from(line).unwrap_or(u32::MAX),
             snippet: String::from_utf8_lossy(&source[start..end]).into_owned(),
             top_level: true,
+            load_only: false,
         });
     }
 }

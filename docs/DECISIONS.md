@@ -288,3 +288,70 @@ Deferred, because they concern later milestones:
   assumptions, which the review drew from memory of node-tar and pacote.
 - **Accepted.** `tracked_by_repo` can learn whether a path exists outside the checkout through a symlinked directory in it.
   That is one boolean, in a read-only container, and git checkouts are made with symlinks disabled.
+
+## 2026-11-09: Capability extraction walks the tree instead of running tree-sitter queries
+
+PLAN.md puts the extractor's patterns in `capabilities/queries/*.scm`. They were written that way first, and a test with
+20,000 nested IIFEs took 23 s in query matching against 0.2 s to parse: a query cursor keeps in-progress state per
+ancestor, so its cost grows with size times nesting depth, and nesting is attacker-controlled. A time limit would only
+let a payload hide by nesting deeper. Candidate nodes now come from one iterative pre-order walk that dispatches on node
+kind (`capabilities::File::capture`), which is linear; the same test takes 0.7 s in a debug build. Classification was
+always Rust code resolving names through the file's own bindings, so nothing else changed.
+
+For the same reason nothing calls `Node::parent` per use (it is O(depth) in tree-sitter): whether code runs on load is
+computed in one cursor walk that records the byte ranges of functions that don't, and every other walk is iterative or
+capped (`MAX_EXPR_DEPTH`, `MAX_SCAN`).
+
+## 2026-11-09: What counts as import-time, install-time and call-time
+
+- **Install:** every file reachable from a file an install hook names, through any import. The script's own functions
+  are what it calls, so all of its code counts, not just its top level.
+- **Import:** top-level code in files reached from `main` (or `index.js`), `exports` and `module` through top-level
+  imports only. A function is top level when it runs where it is defined: an IIFE (`(function(){})()`,
+  `!function(){}()`, `.call(this)`), a class static block, or a callback passed to a call made at load. The callback rule
+  over-approximates (a request handler registered at load is counted), which errs toward the stronger context; the
+  scorer can discount it.
+- **Call:** everything else, including a bare `require` of a capability module whose use can't be resolved. Evidence
+  prefers a call over a bare load at the same context.
+
+Module resolution is lexical over the tree's own file map, with Node's extension and `index` rules, bundled
+`node_modules`, and one level of a nested `package.json` `main`. It never touches the disk or follows a link, which
+settles the M4 caveat above about `EntryKind::Symlink.target`.
+
+## 2026-11-09: The capability diff is per file, and changed code that can't be parsed is a finding
+
+A `capability_added` finding is a (file, capability) pair new in `new`; for obfuscation the signal is part of the key, so
+adding a decode→eval flow to a file that already had a long hash literal still shows. Confidence is halved when the old
+package had the capability at the same or a stronger context elsewhere, which is what moved code looks like. A
+capability that moved to a stronger context in the same file is `capability_context_escalated`. In new-package mode
+every capability is reported.
+
+Files are parsed once per content hash across both versions, in parallel (up to 4 threads), within a 64 MiB budget and
+an 8 MiB per-file limit, with a 3 s parse deadline. Changed files are parsed first so that padding can't push the
+payload out of the budget, and a changed file that wasn't analyzed (too large, too slow, over budget) becomes
+`analysis_incomplete`, because code we couldn't inspect must not look clean. A release build analyzes a 4.7 MB package
+against a changed predecessor in about 1 s (`just bench-static`).
+
+Known gaps, left to the dynamic analyzer: data flow is intra-file and flow-insensitive (a decoder wrapped in a helper
+function isn't followed), new uses of a capability a file already had don't show, and inline `node -e` hook scripts
+aren't parsed.
+
+## 2026-11-09: Dependency expansion
+
+`depgraph.rs` reads `dependencies`, `optionalDependencies` and `peerDependencies` (optional peers excluded, since npm
+doesn't install them), with npm's precedence, and classifies each spec as npm-package-arg does. `devDependencies` aren't
+installed for consumers, so moving a package from them into `dependencies` counts as adding it. A range change on the
+registry is routine and not reported; a change of source (registry to git or tarball, or a different alias target) is
+`dependency_repointed`.
+
+The orchestrator expands each registry or alias `dependency_added` into a new-package sub-job: depth at most 2, at most 20
+per parent (most confident first), four at a time. Git, tarball and local sources have no registry version to fetch, and
+bundled dependencies are already in the parent's tarball, so they are noted, not expanded. The version is the one npm
+would install today (a dist-tag, else `latest` if it satisfies the range, else the highest match), resolved with
+node-semver's range rules written on `x/mod/semver` rather than a new dependency. A finished new-package analysis of the
+same version is reused if it was made at the same depth or shallower, since a deeper one expanded fewer levels. Child
+findings are copied into the parent with `via_dependency` set, chained as `a@1.0.0 > b@2.0.0`, and what was expanded,
+reused or skipped is the parent's `dependency-expansion` run. A dependency that fails is a note, never a failed parent.
+
+Why "today" and not "as of the parent's publish": that is what a fresh install gets. For replaying an old incident whose
+malicious dependency version has since been removed (M8), the sub-job fails and says so.

@@ -1,10 +1,12 @@
 //! What each version's code can do, in which context, and what `new` can do that `old`
 //! couldn't.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use drift_proto::v1::{Capability, ExecContext};
+use tree_sitter::Parser;
 
 use crate::artifact::Tree;
 use crate::capabilities::{self, FileFacts, Grammar, Use};
@@ -53,7 +55,68 @@ impl FactCache {
         self.by_sha.insert(info.sha256.clone(), Arc::clone(&facts));
         Ok(facts)
     }
+
+    /// Parses files ahead of `get`, several at a time. `wanted` is in priority order: the
+    /// budget is spent on the first files, and those past it are left for `get` to report.
+    fn prefetch(&mut self, tree: &Tree, wanted: &[(String, Grammar)]) {
+        let mut jobs: Vec<(&str, Grammar, &str)> = Vec::new();
+        let mut scheduled = HashSet::new();
+        for (path, grammar) in wanted {
+            let Some(info) = tree.files.get(path) else {
+                continue;
+            };
+            if self.by_sha.contains_key(&info.sha256)
+                || !scheduled.insert(info.sha256.as_str())
+                || info.size > capabilities::MAX_FILE_BYTES
+                || info.size > self.remaining
+            {
+                continue;
+            }
+            self.remaining -= info.size;
+            jobs.push((path, *grammar, &info.sha256));
+        }
+        let workers = std::thread::available_parallelism()
+            .map_or(1, |n| n.get())
+            .min(MAX_WORKERS)
+            .min(jobs.len());
+        let next = AtomicUsize::new(0);
+        let parsed: Vec<Vec<(String, Arc<FileFacts>)>> = std::thread::scope(|scope| {
+            let handles: Vec<_> = (0..workers)
+                .map(|_| {
+                    scope.spawn(|| {
+                        let mut parser = Parser::new();
+                        let mut out = Vec::new();
+                        loop {
+                            let i = next.fetch_add(1, Ordering::Relaxed);
+                            let Some(&(path, grammar, sha)) = jobs.get(i) else {
+                                return out;
+                            };
+                            let facts = match tree.read(path, capabilities::MAX_FILE_BYTES) {
+                                Some(source) => {
+                                    capabilities::extract_with(&mut parser, grammar, &source)
+                                }
+                                None => FileFacts {
+                                    problem: Some("unreadable".into()),
+                                    ..FileFacts::default()
+                                },
+                            };
+                            out.push((sha.to_owned(), Arc::new(facts)));
+                        }
+                    })
+                })
+                .collect();
+            // A worker that panicked loses its files; `get` then reports them as skipped.
+            handles
+                .into_iter()
+                .map(|h| h.join().unwrap_or_default())
+                .collect()
+        });
+        self.by_sha.extend(parsed.into_iter().flatten());
+    }
 }
+
+/// Most threads parsing at once for one analysis.
+const MAX_WORKERS: usize = 4;
 
 /// One version's code: per-file facts and what reaches each file.
 #[derive(Default)]
@@ -89,6 +152,17 @@ pub fn analyze_version(
             .or_else(|| forced.contains(path).then_some(Grammar::JavaScript))
     };
 
+    // Parse up front, several files at a time: changed files first, then entry points, then
+    // everything else. The walk below then finds each file in the cache.
+    let wanted: Vec<(String, Grammar)> = first
+        .iter()
+        .chain(install_roots.iter().map(|(f, _)| f))
+        .chain(import_roots.iter().map(|(f, _)| f))
+        .chain(tree.files.keys())
+        .filter_map(|path| Some((path.clone(), grammar(path)?)))
+        .collect();
+    cache.prefetch(tree, &wanted);
+
     let mut code = VersionCode::default();
     let mut load = |path: &str, code: &mut VersionCode| -> Option<Arc<FileFacts>> {
         if let Some(f) = code.facts.get(path) {
@@ -110,11 +184,6 @@ pub fn analyze_version(
         }
     };
 
-    for path in first {
-        if tree.files.contains_key(path) {
-            load(path, &mut code);
-        }
-    }
     let package = manifest.and_then(|m| m.name.clone());
     let reach = context::reach(
         tree,
@@ -163,8 +232,10 @@ fn summarize(code: &VersionCode) -> BTreeMap<String, BTreeMap<Key, Best>> {
             match per_file.get_mut(&key) {
                 Some(best) => {
                     best.count += 1;
-                    // Strongest context, then code that runs over a bare require, then earliest.
-                    let order = |c: ExecContext, u: &Use| (rank(c), !u.top_level, u.line);
+                    // Strongest context, then a call over a bare require, then top-level
+                    // code, then the earliest line.
+                    let order =
+                        |c: ExecContext, u: &Use| (rank(c), u.load_only, !u.top_level, u.line);
                     let better = order(context, used) < order(best.context, &best.used);
                     if better {
                         best.context = context;
