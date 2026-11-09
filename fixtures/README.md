@@ -15,3 +15,7 @@ the fixture registry (`deploy/fixture-registry/`) pack them into tarballs on the
 | Package | Versions | Technique |
 |---|---|---|
 | `drift-fixture-install-hook` | 1.0.0 → 1.0.1 | An update adds a `postinstall` hook running a new file that reads the npm config and reports to the sinkhole, published from a tree that differs from the repo (the eslint-scope 3.7.2 technique) |
+| `drift-fixture-benign` | 1.0.0 → 1.0.1 | A routine refactor with an unchanged call-time HTTPS use; the benign baseline, with no capability findings |
+| `drift-fixture-decode-eval` | 1.0.0 → 1.0.1 | The entry point decodes base64 and `eval`s it at import time (the flatmap-stream loader technique) |
+| `drift-fixture-dep-inject` | 1.0.0 → 1.0.1 | An update adds only a dependency, `drift-fixture-evil-dep`, whose install hook carries the payload (the axios → plain-crypto-js technique) |
+| `drift-fixture-evil-dep` | 1.0.0 | The injected dependency: a `postinstall` that reads the npm config, runs `uname` and looks up a sinkhole name |

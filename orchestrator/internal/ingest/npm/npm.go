@@ -85,6 +85,18 @@ func (c *Client) Resolve(ctx context.Context, name, from, to string) (ingest.Res
 	return doc.resolve(name, from, to)
 }
 
+// ResolveDependency implements ingest.Adapter.
+func (c *Client) ResolveDependency(ctx context.Context, name, spec string) (ingest.Version, error) {
+	if !packageName.MatchString(name) {
+		return ingest.Version{}, fmt.Errorf("invalid npm package name %q", name)
+	}
+	doc, err := c.fetchPackument(ctx, name)
+	if err != nil {
+		return ingest.Version{}, err
+	}
+	return doc.resolveDependency(name, spec)
+}
+
 // Download implements ingest.Adapter.
 func (c *Client) Download(ctx context.Context, v ingest.Version, s *store.Store) (store.Blob, error) {
 	tarball, err := c.checkTarballURL(v.TarballURL)

@@ -247,7 +247,9 @@ type jobOutput struct {
 	Error       string           `json:"error,omitempty"`
 	Pair        json.RawMessage  `json:"pair,omitempty"`
 	Analyzers   []db.AnalyzerRun `json:"analyzers,omitempty"`
-	Findings    json.RawMessage  `json:"findings,omitempty"`
+	// SubJobs are the dependency analyses this job started; `drift job <id>` shows each.
+	SubJobs  []string        `json:"sub_jobs,omitempty"`
+	Findings json.RawMessage `json:"findings,omitempty"`
 }
 
 // printJob writes one job, with its analyzer runs and findings, as JSON. Unusual characters in
@@ -274,6 +276,9 @@ func printJob(ctx context.Context, w io.Writer, database *db.DB, job *db.Job) er
 		return err
 	}
 	output.Analyzers = runs
+	if output.SubJobs, err = database.SubJobs(ctx, job.ID); err != nil {
+		return err
+	}
 	findings, err := database.Findings(ctx, job.ID)
 	if err != nil {
 		return err

@@ -1,0 +1,12 @@
+file_added CAPABILITY_UNSPECIFIED EXEC_CONTEXT_UNSPECIFIED confidence=0.30
+  evidence: lib/format.js:0 
+  attrs: run_by_install_hook=false sha256=edc76277150a32fb3a88111a8fdb573c59a8021b529446e365113bffa5295495 size=164
+file_modified CAPABILITY_UNSPECIFIED EXEC_CONTEXT_UNSPECIFIED confidence=0.20
+  evidence: lib/index.js:0 
+  attrs: old_sha256=3cc5a95e60e39f0dde36a07b92ca0604fd46121e18dd945d7683f931c1ea1fb7 run_by_install_hook=false sha256=bcc1934e1af8a73e309ee768d08991842e45a95997580230f5bc09cf475d5757 size=411
+file_modified CAPABILITY_UNSPECIFIED EXEC_CONTEXT_UNSPECIFIED confidence=0.20
+  evidence: package.json:0 
+  attrs: old_sha256=2e3c715baadb55fb40347b49eb3054b39c53f2f7df1634faa3663618d02a8a96 run_by_install_hook=false sha256=c7fe1e23ffe629c0d417bd6261355d3e5c1359c32949c9f1e1be07b9e93d69c3 size=243
+notes:
+  tarball-vs-repo diff skipped: no source checkout for either version
+

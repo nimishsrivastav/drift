@@ -314,13 +314,13 @@ no sample is ever extracted on the host.
 pair (or another available incident) produces an install-hook or file-change finding end to end.
 
 ### M4 — Static capabilities + dependency drift (week 4)
-- [ ] tree-sitter JS/TS capability extractor with evidence lines
-- [ ] Static import graph from entry points + install hooks → exec-context assignment
-- [ ] Obfuscation detectors (entropy, encoded blobs, decode→exec flow)
-- [ ] Capability diff → `DriftFinding`s; new-package mode when `old` is unset
-- [ ] `depgraph.rs`: dependency diff across all dependency types → `dependency_added` / `dependency_repointed`
-- [ ] Orchestrator dependency expansion: sub-jobs, depth/fan-out limits, verdict cache, roll-up with `via_dependency`
-- [ ] Golden-file tests on fixtures: benign base, malicious install hook, decode→eval, and a dependency-injection variant (new dep with a postinstall)
+- [x] tree-sitter JS/TS capability extractor with evidence lines
+- [x] Static import graph from entry points + install hooks → exec-context assignment
+- [x] Obfuscation detectors (entropy, encoded blobs, decode→exec flow)
+- [x] Capability diff → `DriftFinding`s; new-package mode when `old` is unset
+- [x] `depgraph.rs`: dependency diff across all dependency types → `dependency_added` / `dependency_repointed`
+- [x] Orchestrator dependency expansion: sub-jobs, depth/fan-out limits, verdict cache, roll-up with `via_dependency`
+- [x] Golden-file tests on fixtures: benign base, malicious install hook, decode→eval, and a dependency-injection variant (new dep with a postinstall)
 
 **Acceptance**: fixtures produce exactly the expected findings; the dependency-injection fixture's report shows the
 new dependency's install-time findings rolled up into the parent; the static analyzer finishes in under 5 s for

@@ -138,6 +138,48 @@ func (d *DB) GetJob(ctx context.Context, id string) (*Job, error) {
 	return &job, nil
 }
 
+// CachedDependency finds the latest finished new-package analysis of one version, for reuse
+// by dependency expansion. Only jobs at maxDepth or shallower qualify, because a deeper job
+// expanded fewer levels of its own dependencies.
+func (d *DB) CachedDependency(ctx context.Context, ecosystem driftv1.Ecosystem, name, version string, maxDepth uint32) (*Job, error) {
+	var id string
+	err := d.sql.QueryRowContext(ctx, `
+		SELECT id FROM jobs
+		WHERE ecosystem = ? AND package = ? AND new_version = ? AND old_version IS NULL
+		  AND status = ? AND depth <= ?
+		ORDER BY updated_at DESC LIMIT 1`,
+		ecosystem.String(), name, version, string(StatusDone), maxDepth).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("cached analysis of %s@%s: %w", name, version, ErrNotFound)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find cached analysis: %w", err)
+	}
+	return d.GetJob(ctx, id)
+}
+
+// SubJobs lists the IDs of a job's dependency sub-jobs, oldest first.
+func (d *DB) SubJobs(ctx context.Context, parentID string) ([]string, error) {
+	rows, err := d.sql.QueryContext(ctx,
+		"SELECT id FROM jobs WHERE parent_job_id = ? ORDER BY created_at, id", parentID)
+	if err != nil {
+		return nil, fmt.Errorf("read sub-jobs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("read sub-job: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read sub-jobs: %w", err)
+	}
+	return ids, nil
+}
+
 // SetStatus moves a job to a new status.
 func (d *DB) SetStatus(ctx context.Context, id string, status Status) error {
 	return d.updateJob(ctx, id, "UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?", string(status))

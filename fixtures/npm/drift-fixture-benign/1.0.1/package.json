@@ -1,0 +1,10 @@
+{
+  "name": "drift-fixture-benign",
+  "version": "1.0.1",
+  "description": "SYNTHETIC drift test fixture, benign update. Not a real package.",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "Apache-2.0"
+}

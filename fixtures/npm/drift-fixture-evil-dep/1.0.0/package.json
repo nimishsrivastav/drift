@@ -1,0 +1,10 @@
+{
+  "name": "drift-fixture-evil-dep",
+  "version": "1.0.0",
+  "description": "SYNTHETIC drift test fixture: an injected dependency with an install hook. Not real malware; targets only the sinkhole.",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "node setup.js"
+  },
+  "license": "Apache-2.0"
+}

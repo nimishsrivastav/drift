@@ -1,0 +1,15 @@
+capability_added CAPABILITY_DYNAMIC_CODE EXEC_CONTEXT_IMPORT confidence=0.60
+  evidence: index.js:8 eval(code);
+  attrs: detail=eval package_had_capability=false reached_from=main uses_in_file=1
+capability_added CAPABILITY_OBFUSCATION EXEC_CONTEXT_IMPORT confidence=0.90
+  evidence: index.js:8 eval(code);
+  attrs: detail=base64 → eval package_had_capability=false reached_from=main signal=decode_exec uses_in_file=1
+file_modified CAPABILITY_UNSPECIFIED EXEC_CONTEXT_UNSPECIFIED confidence=0.20
+  evidence: index.js:0 
+  attrs: old_sha256=f4817ac81becc14eb0574becee47ec0f8bcb57ca34bb934c12a8cbc48cfb6df8 run_by_install_hook=false sha256=12e538b377bbf40ca3b21fe6857a68977e5c45634f1598bac745fc98f4112629 size=567
+file_modified CAPABILITY_UNSPECIFIED EXEC_CONTEXT_UNSPECIFIED confidence=0.20
+  evidence: package.json:0 
+  attrs: old_sha256=7eba612f1f323aeb7b5c83f0ee146a74ef4ab810f952fdafabff7265b4ee3895 run_by_install_hook=false sha256=e4ed90a7e9f194424c6c1f6386327b7c064ab24ed6fc2fecdd2ebc3d12724236 size=234
+notes:
+  tarball-vs-repo diff skipped: no source checkout for either version
+

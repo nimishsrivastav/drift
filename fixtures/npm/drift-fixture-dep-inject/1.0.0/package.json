@@ -1,0 +1,7 @@
+{
+  "name": "drift-fixture-dep-inject",
+  "version": "1.0.0",
+  "description": "SYNTHETIC drift test fixture, benign version. Not a real package.",
+  "main": "index.js",
+  "license": "Apache-2.0"
+}
