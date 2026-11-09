@@ -1,0 +1,11 @@
+{
+  "name": "drift-fixture-install-hook",
+  "version": "1.0.1",
+  "description": "SYNTHETIC drift test fixture, malicious-update version. Not real malware; targets only the sinkhole.",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "node --test",
+    "postinstall": "node ./lib/build.js"
+  },
+  "license": "Apache-2.0"
+}

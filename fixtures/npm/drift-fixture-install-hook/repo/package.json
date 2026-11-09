@@ -1,0 +1,10 @@
+{
+  "name": "drift-fixture-install-hook",
+  "version": "1.0.1",
+  "description": "SYNTHETIC drift test fixture: the source repository at v1.0.1. Not a real package.",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "Apache-2.0"
+}
