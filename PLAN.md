@@ -303,12 +303,12 @@ blocks `cat eval/data/samples/test.zip` and allows the `docker run --runtime=run
 no sample is ever extracted on the host.
 
 ### M3 — Safe unpacker + tree/tarball diff (week 3)
-- [ ] `crates/safe-unpack` with all limits from §3, plus `tests/attacks/` cases for each attack
+- [x] `crates/safe-unpack` with all limits from §3, plus `tests/attacks/` cases for each attack
 - [ ] `cargo-fuzz` target for the unpacker, run ≥30 min with no crashes
-- [ ] `static-rs`: file-tree diff + `package.json` scripts diff → findings
-- [ ] `static-rs`: tarball-vs-repo diff with the build-output allowlist → findings
-- [ ] `static-rs` serves `Analyze` over gRPC; the orchestrator calls it
-- [ ] `security-reviewer` agent pass over `safe-unpack`; findings fixed or logged in `docs/DECISIONS.md`
+- [x] `static-rs`: file-tree diff + `package.json` scripts diff → findings
+- [x] `static-rs`: tarball-vs-repo diff with the build-output allowlist → findings
+- [x] `static-rs` serves `Analyze` over gRPC; the orchestrator calls it
+- [x] `security-reviewer` agent pass over `safe-unpack`; findings fixed or logged in `docs/DECISIONS.md`
 
 **Acceptance**: crafted zip-slip/symlink/bomb archives are rejected in tests; analyzing the eslint-scope 3.7.1→3.7.2
 pair (or another available incident) produces an install-hook or file-change finding end to end.
